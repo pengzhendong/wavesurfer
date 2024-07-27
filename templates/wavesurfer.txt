@@ -1,0 +1,84 @@
+<script>{{ wavesurfer_script }}</script>
+<script>{{ hover_script }}</script>
+<script>{{ minimap_script }}</script>
+<script>{{ regions_script }}</script>
+<script>{{ spectrogram_script }}</script>
+<script>{{ timeline_script }}</script>
+<script>{{ zoom_script }}</script>
+<script>{{ plugins_script }}</script>
+<style>
+    #waveform_{{ idx }} {
+        cursor: pointer;
+        position: relative;
+    }
+    #time_{{ idx }}, #duration_{{ idx }} {
+        position: absolute;
+        z-index: 11;
+        top: 95%;
+        margin-top: -1px;
+        transform: translateY(-50%);
+        font-size: 11px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #DDDD;
+    }
+    #time_{{ idx }} { left: 0; }
+    #duration_{{ idx }} { right: 0; }
+</style>
+<br>
+<div id="waveform_{{ idx }}" style="background-color: black; width: {{ width }}px;">
+    <div id="time_{{ idx }}">0:00</div>
+    <div id="duration_{{ idx }}">0:00</div>
+</div>
+<script>
+    wavesurfer_{{ idx }} = WaveSurfer.create({
+        container: '#waveform_{{ idx }}',
+        autoScroll: true,
+        waveColor: '#4BF2A7',
+        cursorColor: '#FF0000',
+        cursorWidth: 2,
+        progressColor: '#4BF2A7',
+        normalize: true,
+        url: '{{ audio.src_attr() }}',
+        sampleRate: '{{ sr }}',
+        minPxPerSec: 100,
+        backend: 'WebAudio',
+    });
+    wavesurfer_{{ idx }}.on('interaction', () => { wavesurfer_{{ idx }}.playPause() });
+    wavesurfer_{{ idx }}.on('decode', (duration) => (document.querySelector('#duration_{{ idx }}').textContent = formatTime(duration)));
+    wavesurfer_{{ idx }}.on('timeupdate', (currentTime) => (document.querySelector('#time_{{ idx }}').textContent = formatTime(currentTime)));
+    {% if enable_hover %}
+        wavesurfer_{{ idx }}.registerPlugin(create_hover());
+    {% endif %}
+    {% if enable_timeline %}
+        wavesurfer_{{ idx }}.registerPlugin(create_timeline());
+    {% endif %}
+    {% if enable_minimap %}
+        wavesurfer_{{ idx }}.registerPlugin(create_minimap());
+    {% endif %}
+    {% if enable_spectrogram %}
+        wavesurfer_{{ idx }}.registerPlugin(create_spectrogram());
+    {% endif %}
+    {% if enable_zoom %}
+        wavesurfer_{{ idx }}.registerPlugin(create_zoom());
+    {% endif %}
+    {% if enable_regions %}
+        wavesurfer_{{ idx }}.registerPlugin(create_regions());
+        activeRegion_{{ idx }} = null;
+        regions_{{ idx }}.on('region-clicked', (region, e) => {
+            e.stopPropagation();
+            activeRegion_{{ idx }} = region;
+            region.play();
+        });
+        regions_{{ idx }}.on('region-out', (region) => {
+            wavesurfer_{{ idx }}.pause();
+        });
+        document.addEventListener('keydown', function(event) {
+            if (event.key == 'Backspace' || event.key == 'Delete') {
+                console.log(event.key)
+                if (activeRegion_{{ idx }}) {
+                    activeRegion_{{ idx }}.remove();
+                }
+            }
+        });
+    {% endif %}
+</script>

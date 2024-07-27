@@ -1,0 +1,4 @@
+include js/*
+include templates/*
+include requirements.txt
+include VERSION
