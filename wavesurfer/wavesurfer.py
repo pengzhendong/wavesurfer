@@ -49,7 +49,7 @@ class WaveSurfer:
         self,
         audio,
         sr,
-        width,
+        width=1200,
         enable_hover=True,
         enable_timeline=True,
         enable_minimap=False,
