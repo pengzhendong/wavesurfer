@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from functools import partial
 from IPython.display import Audio, display, HTML
 from jinja2 import Environment, FileSystemLoader
@@ -20,16 +21,17 @@ from jinja2 import Environment, FileSystemLoader
 class WaveSurfer:
     def __init__(self):
         self.idx = 0
-        wavesurfer_script = open("js/wavesurfer.min.js").read()
-        hover_script = open("js/hover.min.js").read()
-        minimap_script = open("js/minimap.min.js").read()
-        regions_script = open("js/regions.min.js").read()
-        spectrogram_script = open("js/spectrogram.min.js").read()
-        timeline_script = open("js/timeline.min.js").read()
-        zoom_script = open("js/zoom.min.js").read()
-        plugins_script = open("js/plugins.js").read()
+        dirname = os.path.dirname(__file__)
+        wavesurfer_script = open(f"{dirname}/js/wavesurfer.min.js").read()
+        hover_script = open(f"{dirname}/js/hover.min.js").read()
+        minimap_script = open(f"{dirname}/js/minimap.min.js").read()
+        regions_script = open(f"{dirname}/js/regions.min.js").read()
+        spectrogram_script = open(f"{dirname}/js/spectrogram.min.js").read()
+        timeline_script = open(f"{dirname}/js/timeline.min.js").read()
+        zoom_script = open(f"{dirname}/js/zoom.min.js").read()
+        plugins_script = open(f"{dirname}/js/plugins.js").read()
 
-        loader = FileSystemLoader("templates")
+        loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,

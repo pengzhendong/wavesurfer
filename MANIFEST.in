@@ -1,4 +1,5 @@
-include js/*
-include templates/*
 include requirements.txt
 include VERSION
+recursive-include wavesurfer/js *.js
+recursive-include wavesurfer/templates *.txt
+
