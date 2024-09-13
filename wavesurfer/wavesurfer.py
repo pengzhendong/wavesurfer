@@ -15,6 +15,9 @@
 import os
 from functools import partial
 from IPython.display import Audio, display, HTML
+from pathlib import Path
+
+import soundfile as sf
 from jinja2 import Environment, FileSystemLoader
 
 
@@ -22,33 +25,33 @@ class WaveSurfer:
     def __init__(self):
         self.idx = 0
         dirname = os.path.dirname(__file__)
-        wavesurfer_script = open(f"{dirname}/js/wavesurfer.min.js").read()
-        hover_script = open(f"{dirname}/js/hover.min.js").read()
-        minimap_script = open(f"{dirname}/js/minimap.min.js").read()
-        regions_script = open(f"{dirname}/js/regions.min.js").read()
-        spectrogram_script = open(f"{dirname}/js/spectrogram.min.js").read()
-        timeline_script = open(f"{dirname}/js/timeline.min.js").read()
-        zoom_script = open(f"{dirname}/js/zoom.min.js").read()
-        plugins_script = open(f"{dirname}/js/plugins.js").read()
+        wavesurfer_script = open(f"{dirname}/js/wavesurfer.min.js", encoding="utf-8")
+        hover_script = open(f"{dirname}/js/hover.min.js", encoding="utf-8")
+        minimap_script = open(f"{dirname}/js/minimap.min.js", encoding="utf-8")
+        regions_script = open(f"{dirname}/js/regions.min.js", encoding="utf-8")
+        spectrogram_script = open(f"{dirname}/js/spectrogram.min.js", encoding="utf-8")
+        timeline_script = open(f"{dirname}/js/timeline.min.js", encoding="utf-8")
+        zoom_script = open(f"{dirname}/js/zoom.min.js", encoding="utf-8")
+        plugins_script = open(f"{dirname}/js/plugins.js", encoding="utf-8")
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,
-            wavesurfer_script=wavesurfer_script,
-            hover_script=hover_script,
-            minimap_script=minimap_script,
-            regions_script=regions_script,
-            spectrogram_script=spectrogram_script,
-            timeline_script=timeline_script,
-            zoom_script=zoom_script,
-            plugins_script=plugins_script,
+            wavesurfer_script=wavesurfer_script.read(),
+            hover_script=hover_script.read(),
+            minimap_script=minimap_script.read(),
+            regions_script=regions_script.read(),
+            spectrogram_script=spectrogram_script.read(),
+            timeline_script=timeline_script.read(),
+            zoom_script=zoom_script.read(),
+            plugins_script=plugins_script.read(),
         )
 
     def display_audio(
         self,
         audio,
-        sr,
+        sr=None,
         width=1200,
         enable_hover=True,
         enable_timeline=True,
@@ -71,6 +74,9 @@ class WaveSurfer:
         :param enable_regions: Enable regions plugin.
         :return: Rendered output html code.
         """
+        if isinstance(audio, (str, Path)) and sr is None:
+            sr = sf.info(audio).samplerate
+
         self.idx += 1
         html_code = self.template_render(
             idx=self.idx,
