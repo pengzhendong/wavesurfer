@@ -25,27 +25,25 @@ class WaveSurfer:
     def __init__(self):
         self.idx = 0
         dirname = os.path.dirname(__file__)
-        wavesurfer_script = open(f"{dirname}/js/wavesurfer.min.js", encoding="utf-8")
-        hover_script = open(f"{dirname}/js/hover.min.js", encoding="utf-8")
-        minimap_script = open(f"{dirname}/js/minimap.min.js", encoding="utf-8")
-        regions_script = open(f"{dirname}/js/regions.min.js", encoding="utf-8")
-        spectrogram_script = open(f"{dirname}/js/spectrogram.min.js", encoding="utf-8")
-        timeline_script = open(f"{dirname}/js/timeline.min.js", encoding="utf-8")
-        zoom_script = open(f"{dirname}/js/zoom.min.js", encoding="utf-8")
-        plugins_script = open(f"{dirname}/js/plugins.js", encoding="utf-8")
+        plugins = ["hover", "minimap", "regions", "spectrogram", "timeline", "zoom"]
+        scripts = {}
+        for name in ["pcm-player", "plugins"]:
+            scripts[name] = open(f"{dirname}/js/{name}.js", encoding="utf-8")
+        for name in ["wavesurfer"] + plugins:
+            scripts[name] = open(f"{dirname}/js/{name}.min.js", encoding="utf-8")
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,
-            wavesurfer_script=wavesurfer_script.read(),
-            hover_script=hover_script.read(),
-            minimap_script=minimap_script.read(),
-            regions_script=regions_script.read(),
-            spectrogram_script=spectrogram_script.read(),
-            timeline_script=timeline_script.read(),
-            zoom_script=zoom_script.read(),
-            plugins_script=plugins_script.read(),
+            wavesurfer_script=scripts["wavesurfer"].read(),
+            hover_script=scripts["hover"].read(),
+            minimap_script=scripts["minimap"].read(),
+            regions_script=scripts["regions"].read(),
+            spectrogram_script=scripts["spectrogram"].read(),
+            timeline_script=scripts["timeline"].read(),
+            zoom_script=scripts["zoom"].read(),
+            plugins_script=scripts["plugins"].read(),
         )
 
     def display_audio(
@@ -93,4 +91,4 @@ class WaveSurfer:
         display(HTML(html_code))
 
 
-wavesurfer = WaveSurfer()
+display_audio = WaveSurfer().display_audio
