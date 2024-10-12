@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import inspect
 import os
 from functools import partial
 from IPython.display import Audio, display, HTML
@@ -20,75 +22,76 @@ from pathlib import Path
 import soundfile as sf
 from jinja2 import Environment, FileSystemLoader
 
+from .player import Player
+
 
 class WaveSurfer:
     def __init__(self):
-        self.idx = 0
         dirname = os.path.dirname(__file__)
         plugins = ["hover", "minimap", "regions", "spectrogram", "timeline", "zoom"]
-        scripts = {}
+        script = ""
         for name in ["pcm-player", "plugins"]:
-            scripts[name] = open(f"{dirname}/js/{name}.js", encoding="utf-8")
+            script += open(f"{dirname}/js/{name}.js", encoding="utf-8").read()
         for name in ["wavesurfer"] + plugins:
-            scripts[name] = open(f"{dirname}/js/{name}.min.js", encoding="utf-8")
+            script += open(f"{dirname}/js/{name}.min.js", encoding="utf-8").read()
+        style = open(f"{dirname}/css/bootstrap.min.css", encoding="utf-8").read()
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,
-            wavesurfer_script=scripts["wavesurfer"].read(),
-            hover_script=scripts["hover"].read(),
-            minimap_script=scripts["minimap"].read(),
-            regions_script=scripts["regions"].read(),
-            spectrogram_script=scripts["spectrogram"].read(),
-            timeline_script=scripts["timeline"].read(),
-            zoom_script=scripts["zoom"].read(),
-            plugins_script=scripts["plugins"].read(),
+            script=script,
+            style=style,
+            enable_hover=True,
+            enable_timeline=True,
+            enable_minimap=False,
+            enable_spectrogram=False,
+            enable_zoom=False,
+            enable_regions=False,
+            width=1000,
         )
+        self.idx = -1
 
-    def display_audio(
-        self,
-        audio,
-        sr=None,
-        width=1200,
-        enable_hover=True,
-        enable_timeline=True,
-        enable_minimap=False,
-        enable_spectrogram=False,
-        enable_zoom=False,
-        enable_regions=False,
-    ):
+    @staticmethod
+    def encode(data, rate=None, normalize=True, with_header=True):
+        """Transform a wave file or a numpy array to a PCM bytestring"""
+        if with_header:
+            return Audio(data, rate=rate).src_attr()
+        try:
+            scaled, nchan = Audio._validate_and_normalize_with_numpy(data, normalize)
+        except ImportError:
+            scaled, nchan = Audio._validate_and_normalize_without_numpy(data, normalize)
+        return base64.b64encode(scaled).decode("ascii")
+
+    def display_audio(self, audio, rate=None, **kwargs):
         """
         Render audio data and return the rendered result.
 
         :param audio: Audio data to be rendered.
-        :param sr: Sample rate of the audio data.
-        :param width: Width of the rendered output.
-        :param enable_hover: Enable hover plugin.
-        :param enable_timeline: Enable timeline plugin.
-        :param enable_minimap: Enable minimap plugin.
-        :param enable_spectrogram: Enable spectrogram plugin.
-        :param enable_zoom: Enable zoom plugin.
-        :param enable_regions: Enable regions plugin.
+        :param rate: Sample rate of the audio data.
         :return: Rendered output html code.
         """
-        if isinstance(audio, (str, Path)) and sr is None:
-            sr = sf.info(audio).samplerate
+        is_streaming = inspect.isgenerator(audio)
+        if not is_streaming:
+            if isinstance(audio, (str, Path)) and rate is None:
+                rate = sf.info(audio).samplerate
+            audio = self.encode(audio, rate)
 
         self.idx += 1
         html_code = self.template_render(
             idx=self.idx,
-            audio=Audio(audio, rate=sr),
-            sr=sr,
-            width=width,
-            enable_hover=enable_hover,
-            enable_timeline=enable_timeline,
-            enable_minimap=enable_minimap,
-            enable_spectrogram=enable_spectrogram,
-            enable_zoom=enable_zoom,
-            enable_regions=enable_regions,
+            audio=audio,
+            rate=rate,
+            is_streaming=is_streaming,
+            **kwargs,
         )
         display(HTML(html_code))
+
+        if is_streaming:
+            player = Player(self.idx)
+            for chunk in audio:
+                chunk = self.encode(chunk, with_header=False)
+                player.feed(chunk)
 
 
 display_audio = WaveSurfer().display_audio

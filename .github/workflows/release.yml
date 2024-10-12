@@ -17,8 +17,8 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          bash install.sh
           echo ${{ inputs.version }} > VERSION
+          bash install.sh
           python -m venv .venv
           source .venv/bin/activate
           python -m pip install -U setuptools wheel
