@@ -19,6 +19,7 @@ from functools import partial
 from IPython.display import Audio, display, HTML
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
 from jinja2 import Environment, FileSystemLoader
 
@@ -53,14 +54,12 @@ class WaveSurfer:
         self.idx = -1
 
     @staticmethod
-    def encode(data, rate=None, normalize=True, with_header=True):
+    def encode(data, rate=None, with_header=True):
         """Transform a wave file or a numpy array to a PCM bytestring"""
         if with_header:
             return Audio(data, rate=rate).src_attr()
-        try:
-            scaled, nchan = Audio._validate_and_normalize_with_numpy(data, normalize)
-        except ImportError:
-            scaled, nchan = Audio._validate_and_normalize_without_numpy(data, normalize)
+        data = np.clip(data, -1, 1)
+        scaled, nchan = Audio._validate_and_normalize_with_numpy(data, False)
         return base64.b64encode(scaled).decode("ascii")
 
     def display_audio(self, audio, rate=None, **kwargs):
