@@ -13,3 +13,5 @@
 # limitations under the License.
 
 from .wavesurfer import display_audio as display
+
+__all__ = ["display"]

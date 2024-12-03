@@ -16,11 +16,11 @@ import base64
 import inspect
 import os
 from functools import partial
-from IPython.display import Audio, display, HTML
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
+from IPython.display import HTML, Audio, display
 from jinja2 import Environment, FileSystemLoader
 
 from .player import Player
