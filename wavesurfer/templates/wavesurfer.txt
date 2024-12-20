@@ -23,26 +23,36 @@
     <div id="duration_{{ idx }}">0:00</div>
 </div>
 {% if is_streaming %}
-<button class="btn btn-primary my-3" id="button_{{ idx }}">
-    暂停 <i class="fas fa-pause"></i>
-</button>
-</br>
+<button class="btn btn-primary me-3 my-3" id="play_button_{{ idx }}"> 暂停 <i class="fas fa-pause"></i></button>
 <script>
-    button_{{ idx }} = document.getElementById('button_{{ idx }}')
+    play_button_{{ idx }} = document.getElementById('play_button_{{ idx }}')
     player_{{ idx }} = new PCMPlayer({ sampleRate: '{{ rate }}'});
     isPlaying_{{ idx }} = true
-    button_{{ idx }}.addEventListener('click', function() {
+    play_button_{{ idx }}.addEventListener('click', function() {
         if (isPlaying_{{ idx }}) {
             player_{{ idx }}.pause()
-            button_{{ idx }}.innerHTML = '播放 <i class="fas fa-play"></i>'
+            play_button_{{ idx }}.innerHTML = '播放 <i class="fas fa-play"></i>'
         } else {
             player_{{ idx }}.continue()
-            button_{{ idx }}.innerHTML = '暂停 <i class="fas fa-pause"></i>'
+            play_button_{{ idx }}.innerHTML = '暂停 <i class="fas fa-pause"></i>'
         }
         isPlaying_{{ idx }} = !isPlaying_{{ idx }}
     })
 </script>
 {% endif %}
+<button class="btn btn-success my-3", id="download_button_{{ idx }}"> 下载  <i class="fas fa-download"></i></button>
+<script>
+    download_button_{{ idx }} = document.getElementById('download_button_{{ idx }}');
+    download_button_{{ idx }}.addEventListener('click', function() {
+        const link = document.createElement('a');
+        link.href = player_{{ idx }}.url;
+        link.download = 'audio.wav';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+</script>
+</br>
 <script>
     wavesurfer_{{ idx }} = WaveSurfer.create({
         container: '#waveform_{{ idx }}',
