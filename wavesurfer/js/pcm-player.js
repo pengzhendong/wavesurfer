@@ -1,12 +1,12 @@
-(function() {
+(function () {
   if (typeof PCMPlayer === 'undefined') {
     class PCMPlayer {
       constructor(option) {
-        this.option = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, option)
+        this.option = Object.assign({}, { channels: 1, sampleRate: 16000, flushTime: 100 }, option)
         // 每隔 flushTime 毫秒调用一次 flush 函数
         this.interval = setInterval(this.flush.bind(this), this.option.flushTime)
-        this.samples = new Float32Array()
-        this.all_samples = new Float32Array()
+        this.samples = new Int16Array()
+        this.all_samples = new Int16Array()
         this.url
 
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -23,12 +23,12 @@
         for (let i = 0; i < binaryString.length; i++) {
           bufferView[i] = binaryString.charCodeAt(i);
         }
-        const data = Float32Array.from(new Int16Array(buffer)).map(item => item / 32768)
-        this.samples = new Float32Array([...this.samples, ...data])
-        this.all_samples = new Float32Array([...this.all_samples, ...data])
+        const data = new Int16Array(buffer)
+        this.samples = new Int16Array([...this.samples, ...data])
+        this.all_samples = new Int16Array([...this.all_samples, ...data])
 
         const wavBytes = getWavBytes(this.all_samples.buffer, {
-          isFloat: true,
+          isFloat: false,
           numChannels: this.option.channels,
           sampleRate: this.option.sampleRate,
         })
@@ -54,7 +54,7 @@
         bufferSource.connect(this.gainNode)
         bufferSource.start(this.startTime)
         this.startTime += audioBuffer.duration
-        this.samples = new Float32Array()
+        this.samples = new Int16Array()
       }
 
       async continue() {
@@ -86,8 +86,8 @@ function getWavHeader(options) {
   const numFrames = options.numFrames
   const numChannels = options.numChannels || 2
   const sampleRate = options.sampleRate || 44100
-  const bytesPerSample = options.isFloat? 4 : 2
-  const format = options.isFloat? 3 : 1
+  const bytesPerSample = options.isFloat ? 4 : 2
+  const format = options.isFloat ? 3 : 1
   const blockAlign = numChannels * bytesPerSample
   const byteRate = sampleRate * blockAlign
   const dataSize = numFrames * blockAlign

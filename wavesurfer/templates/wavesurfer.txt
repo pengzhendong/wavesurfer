@@ -40,19 +40,6 @@
     })
 </script>
 {% endif %}
-<button class="btn btn-success my-3", id="download_button_{{ idx }}"> 下载  <i class="fas fa-download"></i></button>
-<script>
-    download_button_{{ idx }} = document.getElementById('download_button_{{ idx }}');
-    download_button_{{ idx }}.addEventListener('click', function() {
-        const link = document.createElement('a');
-        link.href = player_{{ idx }}.url;
-        link.download = 'audio.wav';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
-</script>
-</br>
 <script>
     wavesurfer_{{ idx }} = WaveSurfer.create({
         container: '#waveform_{{ idx }}',
@@ -107,4 +94,20 @@
         }
     });
 {% endif %}
+</script>
+<button class="btn btn-success my-3", id="download_button_{{ idx }}"> 下载  <i class="fas fa-download"></i></button>
+<script>
+    download_button_{{ idx }} = document.getElementById('download_button_{{ idx }}');
+    download_button_{{ idx }}.addEventListener('click', function() {
+        const link = document.createElement('a');
+        {% if is_streaming %}
+            link.href = player_{{ idx }}.url;
+        {% else %}
+            link.href = wavesurfer_{{ idx }}.options.url;
+        {% endif %}
+        link.download = 'audio.wav';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
 </script>
