@@ -15,6 +15,7 @@
 import base64
 import inspect
 import os
+import time
 from functools import partial
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class WaveSurfer:
         scaled, nchan = Audio._validate_and_normalize_with_numpy(data, False)
         return base64.b64encode(scaled).decode("ascii")
 
-    def display_audio(self, audio, rate=None, **kwargs):
+    def display_audio(self, audio, rate: int = None, verbose: bool = False, **kwargs):
         """
         Render audio data and return the rendered result.
 
@@ -88,9 +89,12 @@ class WaveSurfer:
 
         if is_streaming:
             player = Player(self.idx)
-            for chunk in audio:
+            start = time.time()
+            for i, chunk in enumerate(audio):
                 chunk = self.encode(chunk, with_header=False)
                 player.feed(chunk)
+                if verbose and i == 0:
+                    print(f"First chunk latency: {(time.time() - start) * 1000:.2f} ms")
 
 
 display_audio = WaveSurfer().display_audio
