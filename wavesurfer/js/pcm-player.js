@@ -5,8 +5,8 @@
         this.option = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, option)
         // 每隔 flushTime 毫秒调用一次 flush 函数
         this.interval = setInterval(this.flush.bind(this), this.option.flushTime)
-        this.samples = new Float32Array()
-        this.all_samples = new Float32Array()
+        this.samples = new Int16Array()
+        this.all_samples = new Int16Array()
         this.url
 
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -23,12 +23,12 @@
         for (let i = 0; i < binaryString.length; i++) {
           bufferView[i] = binaryString.charCodeAt(i);
         }
-        const data = Float32Array.from(new Int16Array(buffer)).map(item => item / 32768)
-        this.samples = new Float32Array([...this.samples, ...data])
-        this.all_samples = new Float32Array([...this.all_samples, ...data])
+        const data = new Int16Array(buffer)
+        this.samples = new Int16Array([...this.samples, ...data])
+        this.all_samples = new Int16Array([...this.all_samples, ...data])
 
         const wavBytes = getWavBytes(this.all_samples.buffer, {
-          isFloat: true,
+          isFloat: false,
           numChannels: this.option.channels,
           sampleRate: this.option.sampleRate,
         })
@@ -44,7 +44,7 @@
           const audioData = audioBuffer.getChannelData(channel)
           let offset = channel
           for (let i = 0; i < length; i++) {
-            audioData[i] = this.samples[offset]
+            audioData[i] = this.samples[offset] / 32768
             offset += this.option.channels
           }
         }
@@ -54,7 +54,7 @@
         bufferSource.connect(this.gainNode)
         bufferSource.start(this.startTime)
         this.startTime += audioBuffer.duration
-        this.samples = new Float32Array()
+        this.samples = new Int16Array()
       }
 
       async continue() {
@@ -125,7 +125,7 @@ function getWavHeader(options) {
 }
 
 function getWavBytes(buffer, options) {
-  const type = options.isFloat ? Float32Array : Uint16Array
+  const type = options.isFloat ? Float32Array : Int16Array
   const numFrames = buffer.byteLength / type.BYTES_PER_ELEMENT
   const headerBytes = getWavHeader(Object.assign({}, options, { numFrames }))
   const wavBytes = new Uint8Array(headerBytes.length + buffer.byteLength);

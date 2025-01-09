@@ -63,7 +63,7 @@ class WaveSurfer:
         scaled, nchan = Audio._validate_and_normalize_with_numpy(data, False)
         return base64.b64encode(scaled).decode("ascii")
 
-    def display_audio(self, audio, rate: int = None, verbose: bool = False, **kwargs):
+    def display_audio(self, audio, rate, verbose: bool = False, **kwargs):
         """
         Render audio data and return the rendered result.
 
