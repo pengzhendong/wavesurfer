@@ -26,18 +26,7 @@
 <button class="btn btn-primary me-3 my-3" id="play_button_{{ idx }}"> 暂停 <i class="fas fa-pause"></i></button>
 <script>
     play_button_{{ idx }} = document.getElementById('play_button_{{ idx }}')
-    player_{{ idx }} = new PCMPlayer({ sampleRate: '{{ rate }}'});
-    isPlaying_{{ idx }} = true
-    play_button_{{ idx }}.addEventListener('click', function() {
-        if (isPlaying_{{ idx }}) {
-            player_{{ idx }}.pause()
-            play_button_{{ idx }}.innerHTML = '播放 <i class="fas fa-play"></i>'
-        } else {
-            player_{{ idx }}.continue()
-            play_button_{{ idx }}.innerHTML = '暂停 <i class="fas fa-pause"></i>'
-        }
-        isPlaying_{{ idx }} = !isPlaying_{{ idx }}
-    })
+    player_{{ idx }} = new PCMPlayer({{ idx }}, { sampleRate: '{{ rate }}' });
 </script>
 {% endif %}
 <script>

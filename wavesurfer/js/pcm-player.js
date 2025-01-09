@@ -1,7 +1,22 @@
 (function() {
   if (typeof PCMPlayer === 'undefined') {
     class PCMPlayer {
-      constructor(option) {
+      constructor(id, option) {
+        this.id = id
+        this.is_done = false  // 是否传输完毕
+        this.is_playing = true
+        this.button = document.getElementById(`play_button_${id}`)
+        this.button.addEventListener('click', function() {
+          this.is_playing = !this.is_playing
+          if (!this.is_playing) {
+              this.pause()
+              this.button.innerHTML = '播放 <i class="fas fa-play"></i>'
+          } else {
+              this.continue()
+              this.button.innerHTML = '暂停 <i class="fas fa-pause"></i>'
+          }
+        })
+
         this.option = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, option)
         // 每隔 flushTime 毫秒调用一次 flush 函数
         this.interval = setInterval(this.flush.bind(this), this.option.flushTime)
@@ -15,6 +30,8 @@
         this.gainNode.connect(this.audioCtx.destination)
         this.startTime = this.audioCtx.currentTime
       }
+
+      set_done() { this.is_done = true }
 
       feed(base64Data) {
         const binaryString = atob(base64Data)
@@ -37,6 +54,7 @@
 
       flush() {
         if (!this.samples.length) return
+        var is_done = this.is_done
         var bufferSource = this.audioCtx.createBufferSource()
         const length = this.samples.length / this.option.channels
         const audioBuffer = this.audioCtx.createBuffer(this.option.channels, length, this.option.sampleRate)
@@ -53,6 +71,7 @@
         bufferSource.buffer = audioBuffer
         bufferSource.connect(this.gainNode)
         bufferSource.start(this.startTime)
+        bufferSource.onended = () => { this.button.disabled = is_done ? true : false }
         this.startTime += audioBuffer.duration
         this.samples = new Int16Array()
       }

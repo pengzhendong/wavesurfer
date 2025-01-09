@@ -95,6 +95,7 @@ class WaveSurfer:
                 player.feed(chunk)
                 if verbose and i == 0:
                     print(f"First chunk latency: {(time.time() - start) * 1000:.2f} ms")
+            player.set_done()
 
 
 display_audio = WaveSurfer().display_audio

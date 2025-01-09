@@ -32,5 +32,8 @@ class Player:
         self.render(f"{self.player}.feed('{base64_pcm}')")
         self.render(f"{self.wavesurfer}.load({self.player}.url)")
 
+    def set_done(self):
+        self.render(f"{self.player}.set_done()")
+
     def destroy(self):
         self.render(f"{self.player}.destroy()")
