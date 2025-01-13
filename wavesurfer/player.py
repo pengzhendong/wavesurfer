@@ -13,17 +13,21 @@
 # limitations under the License.
 
 import base64
+import time
 from typing import Optional
+from uuid import uuid4
 
 import numpy as np
 from IPython.display import HTML, Audio, display
 
 
 class Player:
-    def __init__(self, index):
-        self.player = f"player_{index}"
-        self.wavesurfer = f"wavesurfer_{index}"
+    def __init__(self, verbose: bool = False):
+        self.uuid = str(uuid4().hex)
         self.display_id = None
+        self.has_started = False
+        self.created_at = time.time()
+        self.verbose = verbose
 
     @staticmethod
     def encode(data, rate: Optional[int] = None, with_header: bool = True):
@@ -42,12 +46,16 @@ class Player:
             self.display_id.update(html)
 
     def feed(self, chunk):
+        if not self.has_started and self.verbose:
+            latency = (time.time() - self.created_at) * 1000
+            print(f"First chunk latency: {latency:.2f} ms")
+        self.has_started = True
         base64_pcm = Player.encode(chunk, with_header=False)
-        self.render(f"{self.player}.feed('{base64_pcm}')")
-        self.render(f"{self.wavesurfer}.load({self.player}.url)")
+        self.render(f"player_{self.uuid}.feed('{base64_pcm}')")
+        self.render(f"wavesurfer_{self.uuid}.load(player_{self.uuid}.url)")
 
     def set_done(self):
-        self.render(f"{self.player}.set_done()")
+        self.render(f"player_{self.uuid}.set_done()")
 
     def destroy(self):
-        self.render(f"{self.player}.destroy()")
+        self.render(f"player_{self.uuid}.destroy()")

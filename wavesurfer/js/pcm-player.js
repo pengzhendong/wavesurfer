@@ -1,11 +1,11 @@
 (function() {
   if (typeof PCMPlayer === 'undefined') {
     class PCMPlayer {
-      constructor(id, option) {
-        this.id = id
+      constructor(uuid, option) {
+        this.uuid = uuid
         this.is_done = false  // 是否传输完毕
         this.is_playing = true
-        this.button = document.getElementById(`play_button_${id}`)
+        this.button = document.getElementById(`play_button_${uuid}`)
         this.button.addEventListener('click', function() {
           this.is_playing = !this.is_playing
           if (!this.is_playing) {

@@ -14,11 +14,11 @@
 
 import asyncio
 import os
-import time
 from functools import partial
 from inspect import isasyncgen, isgenerator
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 import soundfile as sf
 from IPython.display import HTML, display
@@ -52,30 +52,23 @@ class WaveSurfer:
             enable_regions=False,
             width=1000,
         )
-        self.idx = -1
 
-    def render(self, audio, rate: int, is_streaming: bool = False, **kwargs):
-        self.idx += 1
+    def render(self, audio, rate: int, uuid: str = None, **kwargs):
         html_code = self.template_render(
-            idx=self.idx,
+            uuid=uuid or str(uuid4().hex),
             audio=audio,
             rate=rate,
-            is_streaming=is_streaming,
+            is_streaming=uuid is not None,
             **kwargs,
         )
         display(HTML(html_code))
-        if is_streaming:
-            return Player(self.idx)
 
-    def play(self, player, start, audio, rate: Optional[int] = None, verbose: bool = False, **kwargs):
+    def play(self, player, audio, rate: Optional[int] = None, **kwargs):
         if isinstance(audio, tuple):
             audio, rate = audio
-        if player is None:
-            player = self.render(None, rate, True, **kwargs)
-            if verbose:
-                print(f"First chunk latency: {(time.time() - start) * 1000:.2f} ms")
+        if not player.has_started:
+            self.render(None, rate, player.uuid, **kwargs)
         player.feed(audio)
-        return player
 
     def display_audio(self, audio, rate: Optional[int] = None, verbose: bool = False, **kwargs):
         """
@@ -90,24 +83,22 @@ class WaveSurfer:
             if isinstance(audio, (str, Path)) and rate is None:
                 rate = sf.info(audio).samplerate
             audio = Player.encode(audio, rate)
-            self.render(audio, rate, False, **kwargs)
+            self.render(audio, rate, **kwargs)
 
         if is_streaming:
             if isasyncgen(audio):
 
                 async def process_async_gen():
-                    player = None
-                    start = time.time()
+                    player = Player(verbose)
                     async for chunk in audio:
-                        player = self.play(player, start, chunk, rate, verbose, **kwargs)
+                        self.play(player, chunk, rate, **kwargs)
                     player.set_done()
 
                 asyncio.create_task(process_async_gen())
             else:
-                player = None
-                start = time.time()
+                player = Player(verbose)
                 for chunk in audio:
-                    player = self.play(player, start, chunk, rate, verbose, **kwargs)
+                    self.play(player, chunk, rate, **kwargs)
                 player.set_done()
 
 

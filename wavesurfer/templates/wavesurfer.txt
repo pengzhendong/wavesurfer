@@ -1,11 +1,11 @@
 <script>{{ script }}</script>
 <style>
     {{ style }}
-    #waveform_{{ idx }} {
+    #waveform_{{ uuid }} {
         cursor: pointer;
         position: relative;
     }
-    #time_{{ idx }}, #duration_{{ idx }} {
+    #time_{{ uuid }}, #duration_{{ uuid }} {
         position: absolute;
         z-index: 11;
         top: 95%;
@@ -15,23 +15,22 @@
         background: rgba(0, 0, 0, 0.75);
         color: #DDDD;
     }
-    #time_{{ idx }} { left: 0; }
-    #duration_{{ idx }} { right: 0; }
+    #time_{{ uuid }} { left: 0; }
+    #duration_{{ uuid }} { right: 0; }
 </style>
-<div id="waveform_{{ idx }}" style="background-color: black; width: {{ width }}px;">
-    <div id="time_{{ idx }}">0:00</div>
-    <div id="duration_{{ idx }}">0:00</div>
+<div id="waveform_{{ uuid }}" style="background-color: black; width: {{ width }}px;">
+    <div id="time_{{ uuid }}">0:00</div>
+    <div id="duration_{{ uuid }}">0:00</div>
 </div>
 {% if is_streaming %}
-<button class="btn btn-primary me-3 my-3" id="play_button_{{ idx }}"> 暂停 <i class="fas fa-pause"></i></button>
+<button class="btn btn-primary me-3 my-3" id="play_button_{{ uuid }}"> 暂停 <i class="fas fa-pause"></i></button>
 <script>
-    play_button_{{ idx }} = document.getElementById('play_button_{{ idx }}')
-    player_{{ idx }} = new PCMPlayer({{ idx }}, { sampleRate: '{{ rate }}' });
+    player_{{ uuid }} = new PCMPlayer('{{ uuid }}', { sampleRate: '{{ rate }}' });
 </script>
 {% endif %}
 <script>
-    wavesurfer_{{ idx }} = WaveSurfer.create({
-        container: '#waveform_{{ idx }}',
+    wavesurfer_{{ uuid }} = WaveSurfer.create({
+        container: '#waveform_{{ uuid }}',
         autoScroll: true,
         waveColor: '#4BF2A7',
         cursorColor: '#FF0000',
@@ -45,54 +44,54 @@
         minPxPerSec: 100,
         backend: 'WebAudio',
     });
-    wavesurfer_{{ idx }}.on('interaction', () => { wavesurfer_{{ idx }}.playPause() });
-    wavesurfer_{{ idx }}.on('decode', (duration) => (document.querySelector('#duration_{{ idx }}').textContent = formatTime(duration)));
-    wavesurfer_{{ idx }}.on('timeupdate', (currentTime) => (document.querySelector('#time_{{ idx }}').textContent = formatTime(currentTime)));
+    wavesurfer_{{ uuid }}.on('interaction', () => { wavesurfer_{{ uuid }}.playPause() });
+    wavesurfer_{{ uuid }}.on('decode', (duration) => (document.querySelector('#duration_{{ uuid }}').textContent = formatTime(duration)));
+    wavesurfer_{{ uuid }}.on('timeupdate', (currentTime) => (document.querySelector('#time_{{ uuid }}').textContent = formatTime(currentTime)));
 {% if enable_hover %}
-    wavesurfer_{{ idx }}.registerPlugin(create_hover());
+    wavesurfer_{{ uuid }}.registerPlugin(create_hover());
 {% endif %}
 {% if enable_timeline %}
-    wavesurfer_{{ idx }}.registerPlugin(create_timeline());
+    wavesurfer_{{ uuid }}.registerPlugin(create_timeline());
 {% endif %}
 {% if enable_minimap %}
-    wavesurfer_{{ idx }}.registerPlugin(create_minimap());
+    wavesurfer_{{ uuid }}.registerPlugin(create_minimap());
 {% endif %}
 {% if enable_spectrogram %}
-    wavesurfer_{{ idx }}.registerPlugin(create_spectrogram());
+    wavesurfer_{{ uuid }}.registerPlugin(create_spectrogram());
 {% endif %}
 {% if enable_zoom %}
-    wavesurfer_{{ idx }}.registerPlugin(create_zoom());
+    wavesurfer_{{ uuid }}.registerPlugin(create_zoom());
 {% endif %}
 {% if enable_regions %}
-    wavesurfer_{{ idx }}.registerPlugin(create_regions());
-    activeRegion_{{ idx }} = null;
-    regions_{{ idx }}.on('region-clicked', (region, e) => {
+    wavesurfer_{{ uuid }}.registerPlugin(create_regions());
+    activeRegion_{{ uuid }} = null;
+    regions_{{ uuid }}.on('region-clicked', (region, e) => {
         e.stopPropagation();
-        activeRegion_{{ idx }} = region;
+        activeRegion_{{ uuid }} = region;
         region.play();
     });
-    regions_{{ idx }}.on('region-out', (region) => {
-        wavesurfer_{{ idx }}.pause();
+    regions_{{ uuid }}.on('region-out', (region) => {
+        wavesurfer_{{ uuid }}.pause();
     });
     document.addEventListener('keydown', function(event) {
         if (event.key == 'Backspace' || event.key == 'Delete') {
             console.log(event.key)
-            if (activeRegion_{{ idx }}) {
-                activeRegion_{{ idx }}.remove();
+            if (activeRegion_{{ uuid }}) {
+                activeRegion_{{ uuid }}.remove();
             }
         }
     });
 {% endif %}
 </script>
-<button class="btn btn-success my-3", id="download_button_{{ idx }}"> 下载  <i class="fas fa-download"></i></button>
+<button class="btn btn-success my-3", id="download_button_{{ uuid }}"> 下载  <i class="fas fa-download"></i></button>
 <script>
-    download_button_{{ idx }} = document.getElementById('download_button_{{ idx }}');
-    download_button_{{ idx }}.addEventListener('click', function() {
+    download_button_{{ uuid }} = document.getElementById('download_button_{{ uuid }}');
+    download_button_{{ uuid }}.addEventListener('click', function() {
         const link = document.createElement('a');
         {% if is_streaming %}
-            link.href = player_{{ idx }}.url;
+            link.href = player_{{ uuid }}.url;
         {% else %}
-            link.href = wavesurfer_{{ idx }}.options.url;
+            link.href = wavesurfer_{{ uuid }}.options.url;
         {% endif %}
         link.download = 'audio.wav';
         document.body.appendChild(link);
