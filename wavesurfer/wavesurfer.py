@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
-import inspect
+import asyncio
 import os
 import time
 from functools import partial
+from inspect import isasyncgen, isgenerator
 from pathlib import Path
+from typing import Optional
 
-import numpy as np
 import soundfile as sf
-from IPython.display import HTML, Audio, display
+from IPython.display import HTML, display
 from jinja2 import Environment, FileSystemLoader
 
 from .player import Player
@@ -54,29 +54,7 @@ class WaveSurfer:
         )
         self.idx = -1
 
-    @staticmethod
-    def encode(data, rate=None, with_header=True):
-        """Transform a wave file or a numpy array to a PCM bytestring"""
-        if with_header:
-            return Audio(data, rate=rate).src_attr()
-        data = np.clip(data, -1, 1)
-        scaled, nchan = Audio._validate_and_normalize_with_numpy(data, False)
-        return base64.b64encode(scaled).decode("ascii")
-
-    def display_audio(self, audio, rate, verbose: bool = False, **kwargs):
-        """
-        Render audio data and return the rendered result.
-
-        :param audio: Audio data to be rendered.
-        :param rate: Sample rate of the audio data.
-        :return: Rendered output html code.
-        """
-        is_streaming = inspect.isgenerator(audio)
-        if not is_streaming:
-            if isinstance(audio, (str, Path)) and rate is None:
-                rate = sf.info(audio).samplerate
-            audio = self.encode(audio, rate)
-
+    def render(self, audio, rate: int, is_streaming: bool = False, **kwargs):
         self.idx += 1
         html_code = self.template_render(
             idx=self.idx,
@@ -86,16 +64,51 @@ class WaveSurfer:
             **kwargs,
         )
         display(HTML(html_code))
+        if is_streaming:
+            return Player(self.idx)
+
+    def play(self, player, start, audio, rate: Optional[int] = None, verbose: bool = False, **kwargs):
+        if isinstance(audio, tuple):
+            audio, rate = audio
+        if player is None:
+            player = self.render(None, rate, True, **kwargs)
+            if verbose:
+                print(f"First chunk latency: {(time.time() - start) * 1000:.2f} ms")
+        player.feed(audio)
+        return player
+
+    def display_audio(self, audio, rate: Optional[int] = None, verbose: bool = False, **kwargs):
+        """
+        Render audio data and return the rendered result.
+
+        :param audio: Audio data to be rendered.
+        :param rate: Sample rate of the audio data.
+        :return: Rendered output html code.
+        """
+        is_streaming = isasyncgen(audio) or isgenerator(audio)
+        if not is_streaming:
+            if isinstance(audio, (str, Path)) and rate is None:
+                rate = sf.info(audio).samplerate
+            audio = Player.encode(audio, rate)
+            self.render(audio, rate, False, **kwargs)
 
         if is_streaming:
-            player = Player(self.idx)
-            start = time.time()
-            for i, chunk in enumerate(audio):
-                chunk = self.encode(chunk, with_header=False)
-                player.feed(chunk)
-                if verbose and i == 0:
-                    print(f"First chunk latency: {(time.time() - start) * 1000:.2f} ms")
-            player.set_done()
+            if isasyncgen(audio):
+
+                async def process_async_gen():
+                    player = None
+                    start = time.time()
+                    async for chunk in audio:
+                        player = self.play(player, start, chunk, rate, verbose, **kwargs)
+                    player.set_done()
+
+                asyncio.create_task(process_async_gen())
+            else:
+                player = None
+                start = time.time()
+                for chunk in audio:
+                    player = self.play(player, start, chunk, rate, verbose, **kwargs)
+                player.set_done()
 
 
 display_audio = WaveSurfer().display_audio

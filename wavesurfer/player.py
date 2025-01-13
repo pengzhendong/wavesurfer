@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from IPython.display import HTML, display
+import base64
+from typing import Optional
+
+import numpy as np
+from IPython.display import HTML, Audio, display
 
 
 class Player:
@@ -21,6 +25,15 @@ class Player:
         self.wavesurfer = f"wavesurfer_{index}"
         self.display_id = None
 
+    @staticmethod
+    def encode(data, rate: Optional[int] = None, with_header: bool = True):
+        """Transform a wave file or a numpy array to a PCM bytestring"""
+        if with_header:
+            return Audio(data, rate=rate).src_attr()
+        data = np.clip(data, -1, 1)
+        scaled, _ = Audio._validate_and_normalize_with_numpy(data, False)
+        return base64.b64encode(scaled).decode("ascii")
+
     def render(self, script):
         html = HTML(f"<script>{script}</script>")
         if self.display_id is None:
@@ -28,7 +41,8 @@ class Player:
         else:
             self.display_id.update(html)
 
-    def feed(self, base64_pcm):
+    def feed(self, chunk):
+        base64_pcm = Player.encode(chunk, with_header=False)
         self.render(f"{self.player}.feed('{base64_pcm}')")
         self.render(f"{self.wavesurfer}.load({self.player}.url)")
 
