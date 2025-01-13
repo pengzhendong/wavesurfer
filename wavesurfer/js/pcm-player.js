@@ -12,10 +12,10 @@
               this.pause()
               this.button.innerHTML = '播放 <i class="fas fa-play"></i>'
           } else {
-              this.continue()
+              this.play()
               this.button.innerHTML = '暂停 <i class="fas fa-pause"></i>'
           }
-        })
+        }.bind(this))
 
         this.option = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, option)
         // 每隔 flushTime 毫秒调用一次 flush 函数
@@ -76,7 +76,7 @@
         this.samples = new Int16Array()
       }
 
-      async continue() {
+      async play() {
         await this.audioCtx.resume()
       }
 
