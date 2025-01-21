@@ -17,12 +17,15 @@ import os
 from functools import partial
 from inspect import isasyncgen, isgenerator
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from uuid import uuid4
 
-import soundfile as sf
+import numpy as np
+import torch
 from IPython.display import HTML, display
 from jinja2 import Environment, FileSystemLoader
+from lhotse import Recording
+from lhotse.cut.base import Cut
 
 from .player import Player
 
@@ -70,7 +73,13 @@ class WaveSurfer:
             self.render(None, rate, player.uuid, **kwargs)
         player.feed(audio)
 
-    def display_audio(self, audio, rate: Optional[int] = None, verbose: bool = False, **kwargs):
+    def display_audio(
+        self,
+        audio: Union[str, Path, np.ndarray, torch.Tensor, Cut, Recording],
+        rate: Optional[int] = None,
+        verbose: bool = False,
+        **kwargs,
+    ):
         """
         Render audio data and return the rendered result.
 
@@ -80,8 +89,14 @@ class WaveSurfer:
         """
         is_streaming = isasyncgen(audio) or isgenerator(audio)
         if not is_streaming:
-            if isinstance(audio, (str, Path)) and rate is None:
-                rate = sf.info(audio).samplerate
+            if rate is None:
+                if isinstance(audio, (str, Path)):
+                    recording = Recording.from_file(audio)
+                    rate = recording.sampling_rate
+                    audio = recording.load_audio()
+                elif isinstance(audio, (Cut, Recording)):
+                    rate = audio.sampling_rate
+                    audio = audio.load_audio()
             audio = Player.encode(audio, rate)
             self.render(audio, rate, **kwargs)
 
