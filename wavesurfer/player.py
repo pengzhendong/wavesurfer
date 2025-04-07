@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import time
-from typing import Optional
 from uuid import uuid4
 
-import numpy as np
-from IPython.display import HTML, Audio, display
+from audiolab import encode
+from IPython.display import HTML, display
 
 
 class Player:
@@ -28,15 +26,6 @@ class Player:
         self.has_started = False
         self.created_at = time.time()
         self.verbose = verbose
-
-    @staticmethod
-    def encode(data, rate: Optional[int] = None, with_header: bool = True):
-        """Transform a wave file or a numpy array to a PCM bytestring"""
-        if with_header:
-            return Audio(data, rate=rate).src_attr()
-        data = np.clip(data, -1, 1)
-        scaled, _ = Audio._validate_and_normalize_with_numpy(data, False)
-        return base64.b64encode(scaled).decode("ascii")
 
     def render(self, script):
         html = HTML(f"<script>{script}</script>")
@@ -50,7 +39,7 @@ class Player:
             latency = (time.time() - self.created_at) * 1000
             print(f"First chunk latency: {latency:.2f} ms")
         self.has_started = True
-        base64_pcm = Player.encode(chunk, with_header=False)
+        base64_pcm, _ = encode(chunk, make_wav=False)
         self.render(f"player_{self.uuid}.feed('{base64_pcm}')")
         self.render(f"wavesurfer_{self.uuid}.load(player_{self.uuid}.url)")
 
