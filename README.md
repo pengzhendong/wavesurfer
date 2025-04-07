@@ -2,13 +2,13 @@
 
 ## Usage
 
-``` bash
+```bash
 $ pip install wavesurfer
 ```
 
 - display wave file
 
-``` python
+```python
 from wavesurfer import display
 
 display("data/test_16k.wav")
@@ -16,19 +16,19 @@ display("data/test_16k.wav")
 
 - display waveform
 
-``` python
+```python
 import torchaudio
 from wavesurfer import display
 
 waveform, rate = torchaudio.load("data/test_16k.wav")
-display(waveform, rate, enable_minimap=True, enable_spectrogram=True)
+display(waveform, rate, enable_spectrogram=True)
 ```
 
 ![](images/test_16k.png)
 
 - display streaming waveform
 
-``` python
+```python
 import time
 import torchaudio
 from wavesurfer import display

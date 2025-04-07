@@ -22,6 +22,7 @@ from uuid import uuid4
 
 import numpy as np
 import torch
+from audiolab import encode
 from IPython.display import HTML, display
 from jinja2 import Environment, FileSystemLoader
 from lhotse import Recording
@@ -49,11 +50,11 @@ class WaveSurfer:
             style=style,
             enable_hover=True,
             enable_timeline=True,
-            enable_minimap=False,
+            enable_minimap=True,
             enable_spectrogram=False,
             enable_zoom=False,
             enable_regions=False,
-            width=1000,
+            width="100%",
         )
 
     def render(self, audio, rate: int, uuid: str = None, **kwargs):
@@ -89,15 +90,7 @@ class WaveSurfer:
         """
         is_streaming = isasyncgen(audio) or isgenerator(audio)
         if not is_streaming:
-            if rate is None:
-                if isinstance(audio, (str, Path)):
-                    recording = Recording.from_file(audio)
-                    rate = recording.sampling_rate
-                    audio = recording.load_audio()
-                elif isinstance(audio, (Cut, Recording)):
-                    rate = audio.sampling_rate
-                    audio = audio.load_audio()
-            audio = Player.encode(audio, rate)
+            audio, rate = encode(audio, rate)
             self.render(audio, rate, **kwargs)
 
         if is_streaming:
