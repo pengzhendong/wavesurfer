@@ -34,22 +34,15 @@ from .player import Player
 class WaveSurfer:
     def __init__(self):
         dirname = os.path.dirname(__file__)
-        plugins = ["hover", "minimap", "regions", "spectrogram", "timeline", "zoom"]
         script = ""
         for name in ["pcm-player", "plugins"]:
             script += open(f"{dirname}/js/{name}.js", encoding="utf-8").read()
-        for name in ["wavesurfer"] + plugins:
-            script += open(f"{dirname}/js/{name}.min.js", encoding="utf-8").read()
-        style = ""
-        for name in ["bootstrap", "fontawesome"]:
-            style += open(f"{dirname}/css/{name}.min.css", encoding="utf-8").read()
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,
             script=script,
-            style=style,
             enable_hover=True,
             enable_timeline=True,
             enable_minimap=True,
