@@ -1,3 +1,5 @@
+wget -P wavesurfer/css https://cdn.jsdelivr.net/npm/bootstrap/dist/css/bootstrap.min.css
+wget -P wavesurfer/css https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/fontawesome.min.css
 wget -P wavesurfer/js https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js
 wget -P wavesurfer/js https://unpkg.com/wavesurfer.js@7/dist/plugins/hover.min.js
 wget -P wavesurfer/js https://unpkg.com/wavesurfer.js@7/dist/plugins/minimap.min.js

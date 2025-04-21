@@ -17,7 +17,7 @@ import os
 from functools import partial
 from inspect import isasyncgen, isgenerator
 from pathlib import Path
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 from uuid import uuid4
 
 import numpy as np
@@ -40,7 +40,9 @@ class WaveSurfer:
             script += open(f"{dirname}/js/{name}.js", encoding="utf-8").read()
         for name in ["wavesurfer"] + plugins:
             script += open(f"{dirname}/js/{name}.min.js", encoding="utf-8").read()
-        style = open(f"{dirname}/css/bootstrap.min.css", encoding="utf-8").read()
+        style = ""
+        for name in ["bootstrap", "fontawesome"]:
+            style += open(f"{dirname}/css/{name}.min.css", encoding="utf-8").read()
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
@@ -57,12 +59,13 @@ class WaveSurfer:
             width="100%",
         )
 
-    def render(self, audio, rate: int, uuid: str = None, **kwargs):
+    def render(self, audio, rate: int, uuid: str = None, lang: Literal["zh", "en"] = "en", **kwargs):
         html_code = self.template_render(
             uuid=uuid or str(uuid4().hex),
             audio=audio,
             rate=rate,
             is_streaming=uuid is not None,
+            download_label="下载" if lang == "zh" else "Download",
             **kwargs,
         )
         display(HTML(html_code))

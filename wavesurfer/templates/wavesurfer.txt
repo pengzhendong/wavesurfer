@@ -83,7 +83,9 @@
     });
 {% endif %}
 </script>
-<button class="btn btn-success my-3", id="download_button_{{ uuid }}"> 下载 <i class="fas fa-download"></i></button>
+<button class="btn btn-success my-3", id="download_button_{{ uuid }}">
+  {{ download_label }} <i class="fas fa-download"></i>
+</button>
 <script>
     download_button_{{ uuid }} = document.getElementById('download_button_{{ uuid }}');
     download_button_{{ uuid }}.addEventListener('click', function() {
