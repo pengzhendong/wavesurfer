@@ -1,5 +1,5 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.5/css/bootstrap.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.5/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/wavesurfer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/hover.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/minimap.min.js"></script>
@@ -7,38 +7,49 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/spectrogram.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/timeline.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/zoom.min.js"></script>
-<script>{{ script }}</script>
+<script>{{ pcm_player }}</script>
+<script>
+    formatTime = (seconds) => {
+        const minutes = Math.floor(seconds / 60)
+        const secondsRemainder = Math.round(seconds) % 60
+        const paddedSeconds = `0${secondsRemainder}`.slice(-2)
+        return `${minutes}:${paddedSeconds}`
+    }
+</script>
 <style>
-    #waveform_{{ uuid }} {
+    .jp-RenderedHTMLCommon {
+        padding-right: 0 !important;
+    }
+    .waveform {
+        background-color: black;
         cursor: pointer;
         position: relative;
+        width: {{ width }};
     }
-    #time_{{ uuid }}, #duration_{{ uuid }} {
-        position: absolute;
-        z-index: 11;
-        top: 95%;
-        margin-top: -1px;
-        transform: translateY(-50%);
-        font-size: 11px;
+    .duration, .time {
         background: rgba(0, 0, 0, 0.75);
         color: #DDDD;
+        font-size: 11px;
+        position: absolute;
+        bottom: 0;
+        z-index: 11;
     }
-    #time_{{ uuid }} { left: 0; }
-    #duration_{{ uuid }} { right: 0; }
+    .duration { right: 0; }
+    .time { left: 0; }
 </style>
-<div id="waveform_{{ uuid }}" style="background-color: black; width: {{ width }};">
-    <div id="time_{{ uuid }}">0:00</div>
-    <div id="duration_{{ uuid }}">0:00</div>
+<div id="waveform-{{ uuid }}" class="waveform">
+    <div id="time-{{ uuid }}" class="time">0:00</div>
+    <div id="duration-{{ uuid }}" class="duration">0:00</div>
 </div>
 {% if is_streaming %}
-<button class="btn btn-danger me-3 my-3" style="box-shadow: none" id="play_button_{{ uuid }}"><i class="fas fa-pause"></i></button>
+<button id="playButton-{{ uuid }}" class="btn btn-danger me-3 my-3" style="box-shadow: none"><i class="fas fa-pause"></i></button>
 <script>
     player_{{ uuid }} = new PCMPlayer('{{ uuid }}', { sampleRate: '{{ rate }}' });
 </script>
 {% endif %}
 <script>
     wavesurfer_{{ uuid }} = WaveSurfer.create({
-        container: '#waveform_{{ uuid }}',
+        container: '#waveform-{{ uuid }}',
         autoScroll: true,
         waveColor: '#4BF2A7',
         cursorColor: '#FF0000',
@@ -53,59 +64,110 @@
         backend: 'WebAudio',
     });
     wavesurfer_{{ uuid }}.on('interaction', () => { wavesurfer_{{ uuid }}.playPause() });
-    wavesurfer_{{ uuid }}.on('decode', (duration) => (document.querySelector('#duration_{{ uuid }}').textContent = formatTime(duration)));
-    wavesurfer_{{ uuid }}.on('timeupdate', (currentTime) => (document.querySelector('#time_{{ uuid }}').textContent = formatTime(currentTime)));
+    wavesurfer_{{ uuid }}.on('decode', (duration) => (document.querySelector('#duration-{{ uuid }}').textContent = formatTime(duration)));
+    wavesurfer_{{ uuid }}.on('timeupdate', (currentTime) => (document.querySelector('#time-{{ uuid }}').textContent = formatTime(currentTime)));
 {% if enable_hover %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_hover());
+    wavesurfer_{{ uuid }}.registerPlugin(
+        WaveSurfer.Hover.create({
+            lineColor: '#DDDD',
+            lineWidth: 2,
+            labelBackground: '#5555',
+            labelColor: '#FFFF',
+            labelSize: '11px',
+        })
+    )
 {% endif %}
 {% if enable_timeline %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_timeline());
+    wavesurfer_{{ uuid }}.registerPlugin(
+        WaveSurfer.Timeline.create({
+            height: 15,
+            timeInterval: 0.1,
+            primaryLabelInterval: 1,
+            insertPosition: 'beforebegin',
+            style: {
+            fontSize: '11px',
+            color: '#DDDD',
+            },
+        })
+    )
 {% endif %}
 {% if enable_minimap %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_minimap());
+    wavesurfer_{{ uuid }}.registerPlugin(
+        WaveSurfer.Minimap.create({
+            height: 30,
+            waveColor: '#DDDD',
+            progressColor: '#9999',
+            normalize: true,
+            plugins: [WaveSurfer.Hover.create({
+                lineColor: '#DDDD',
+                lineWidth: 1,
+                labelBackground: '#5555',
+                labelColor: '#FFFF',
+                labelSize: '11px',
+            })],
+        })
+    )
 {% endif %}
 {% if enable_spectrogram %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_spectrogram());
+    wavesurfer_{{ uuid }}.registerPlugin(
+        WaveSurfer.Spectrogram.create({
+            labels: true,
+            colorMap: 'roseus',
+            fftSamples: 2048,
+        })
+    )
 {% endif %}
 {% if enable_zoom %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_zoom());
-{% endif %}
-{% if enable_regions %}
-    wavesurfer_{{ uuid }}.registerPlugin(create_regions());
-    activeRegion_{{ uuid }} = null;
-    regions_{{ uuid }}.on('region-clicked', (region, e) => {
-        e.stopPropagation();
-        activeRegion_{{ uuid }} = region;
-        region.play();
-    });
-    regions_{{ uuid }}.on('region-out', (region) => {
-        wavesurfer_{{ uuid }}.pause();
-    });
-    document.addEventListener('keydown', function(event) {
-        if (event.key == 'Backspace' || event.key == 'Delete') {
-            console.log(event.key)
-            if (activeRegion_{{ uuid }}) {
-                activeRegion_{{ uuid }}.remove();
-            }
-        }
-    });
+    wavesurfer_{{ uuid }}.registerPlugin(
+        WaveSurfer.Zoom.create({
+            scale: 0.5,
+            maxZoom: 1000,
+        })
+    )
 {% endif %}
 </script>
-<button class="btn btn-success my-3", id="download_button_{{ uuid }}">
-  {{ download_label }} <i class="fas fa-download"></i>
+{%- set label = "下载" if language == "zh" else "Download" %}
+<button id="downloadButton-{{ uuid }}" class="btn btn-success my-3">
+  {{ label }} <i class="fas fa-download"></i>
 </button>
+<div class="dropup my-3 float-end text-end">
+    <a href="https://github.com/pengzhendong/wavesurfer" target="_blank">
+        <img class="img-fluid me-3" src="https://img.shields.io/github/stars/pengzhendong/wavesurfer.svg">
+    </a>
+    <button class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" data-bs-target="#dropdownMenu-{{ uuid }}" aria-expanded="false">
+        <i class="fa {{ "fa-thumbs-o-up" if lang == "zh" else "fa-coffee"}}"></i> {{ "赞赏" if lang == "zh" else "Buy me a coffee"}}
+    </button>
+    <ul id="dropdownMenu-{{ uuid }}" class="dropdown-menu p-2" style="width: 280px;">
+        <table class="table table-bordered mb-0">
+            <tbody>
+                <tr>
+                    <td class="text-center p-2" style="width: 50%;">
+                        <img class="img-fluid d-block mx-auto" src="https://modelscope.cn/models/pengzhendong/pengzhendong/resolve/master/images/wechat-reward.jpg">
+                        {%- set label = "微信" if language == "zh" else "WeChat" %}
+                        <div class="text-center mt-2 fw-bold">{{ label }}</div>
+                    </td>
+                    <td class="text-center p-2" style="width: 50%;">
+                        <img class="img-fluid d-block mx-auto" src="https://modelscope.cn/models/pengzhendong/pengzhendong/resolve/master/images/alipay-reward.jpg">
+                        {%- set label = "支付宝" if language == "zh" else "AliPay" %}
+                        <div class="text-center mt-2 fw-bold">{{ label }}</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </ul>
+</div>
 <script>
-    download_button_{{ uuid }} = document.getElementById('download_button_{{ uuid }}');
-    download_button_{{ uuid }}.addEventListener('click', function() {
-        const link = document.createElement('a');
+    downloadButton_{{ uuid }} = document.getElementById('downloadButton-{{ uuid }}')
+    downloadButton_{{ uuid }}.addEventListener('click', function() {
+        const link = document.createElement('a')
         {% if is_streaming %}
-            link.href = player_{{ uuid }}.url;
+            link.href = player_{{ uuid }}.url
         {% else %}
-            link.href = wavesurfer_{{ uuid }}.options.url;
+            link.href = wavesurfer_{{ uuid }}.options.url
         {% endif %}
-        link.download = 'audio.wav';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+        link.download = 'audio.wav'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    })
 </script>

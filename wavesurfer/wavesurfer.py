@@ -34,15 +34,12 @@ from .player import Player
 class WaveSurfer:
     def __init__(self):
         dirname = os.path.dirname(__file__)
-        script = ""
-        for name in ["pcm-player", "plugins"]:
-            script += open(f"{dirname}/js/{name}.js", encoding="utf-8").read()
 
         loader = FileSystemLoader(f"{dirname}/templates")
         template = Environment(loader=loader).get_template("wavesurfer.txt")
         self.template_render = partial(
             template.render,
-            script=script,
+            pcm_player=open(f"{dirname}/js/pcm-player.js", encoding="utf-8").read(),
             enable_hover=True,
             enable_timeline=True,
             enable_minimap=True,
@@ -52,13 +49,13 @@ class WaveSurfer:
             width="100%",
         )
 
-    def render(self, audio, rate: int, uuid: str = None, lang: Literal["zh", "en"] = "en", **kwargs):
+    def render(self, audio, rate: int, uuid: str = None, language: Literal["zh", "en"] = "en", **kwargs):
         html_code = self.template_render(
             uuid=uuid or str(uuid4().hex),
             audio=audio,
             rate=rate,
             is_streaming=uuid is not None,
-            download_label="下载" if lang == "zh" else "Download",
+            language=language.lower(),
             **kwargs,
         )
         display(HTML(html_code))

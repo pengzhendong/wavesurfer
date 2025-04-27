@@ -5,15 +5,15 @@
         this.uuid = uuid
         this.isDone = false  // 是否传输完毕
         this.isPlaying = true
-        this.button = document.getElementById(`play_button_${uuid}`)
+        this.button = document.getElementById(`playButton-${uuid}`)
         this.button.addEventListener('click', function() {
           this.isPlaying = !this.isPlaying
           if (!this.isPlaying) {
               this.pause()
-              this.button.innerHTML = '<i class="fas fa-play"></i>'
+              this.button.innerHTML = '<i class="fa fa-play"></i>'
           } else {
               this.play()
-              this.button.innerHTML = '<i class="fas fa-pause"></i>'
+              this.button.innerHTML = '<i class="fa fa-pause"></i>'
           }
         }.bind(this))
 
@@ -54,7 +54,6 @@
 
       flush() {
         if (!this.samples.length) return
-        var isDone = this.isDone
         var bufferSource = this.audioCtx.createBufferSource()
         const length = this.samples.length / this.option.channels
         const audioBuffer = this.audioCtx.createBuffer(this.option.channels, length, this.option.sampleRate)
@@ -71,7 +70,11 @@
         bufferSource.buffer = audioBuffer
         bufferSource.connect(this.gainNode)
         bufferSource.start(this.startTime)
-        bufferSource.onended = () => { this.button.disabled = isDone ? true : false }
+        bufferSource.onended = () => {
+          if (this.isDone && this.samples.length === 0 && this.startTime <= this.audioCtx.currentTime) {
+            this.button.disabled = true
+          }
+        }
         this.startTime += audioBuffer.duration
         this.samples = new Int16Array()
       }
