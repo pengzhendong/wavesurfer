@@ -1,0 +1,53 @@
+{
+  "options": {
+    "autoScroll": true,
+    "backend": "WebAudio",
+    "container": "",
+    "cursorColor": "#FF0000",
+    "cursorWidth": 2,
+    "minPxPerSec": 100,
+    "normalize": true,
+    "progressColor": "#4BF2A7",
+    "waveColor": "#4BF2A7"
+  },
+  "plugins": [
+    "hover",
+    "minimap",
+    "timeline",
+    "zoom"
+  ],
+  "pluginOptions": {
+    "hover": {
+      "labelBackground": "#5555",
+      "labelColor": "#FFFF",
+      "labelSize": "11px",
+      "lineColor": "#DDDD",
+      "lineWidth": 2
+    },
+    "minimap": {
+      "height": 30,
+      "normalize": true,
+      "progressColor": "#9999",
+      "waveColor": "#DDDD"
+    },
+    "spectrogram": {
+      "colorMap": "roseus",
+      "fftSamples": 2048,
+      "labels": true
+    },
+    "timeline": {
+      "height": 15,
+      "insertPosition": "beforebegin",
+      "primaryLabelInterval": 1,
+      "style": {
+        "color": "#DDDD",
+        "fontSize": "11px"
+      },
+      "timeInterval": 0.1
+    },
+    "zoom": {
+      "maxZoom": 1000,
+      "scale": 0.5
+    }
+  }
+}

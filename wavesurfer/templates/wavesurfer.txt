@@ -1,30 +1,19 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.5/css/bootstrap.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.5/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/wavesurfer.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/hover.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/minimap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/regions.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/spectrogram.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/timeline.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.8.17/plugins/zoom.min.js"></script>
-<script>{{ pcm_player }}</script>
-<script>
-    formatTime = (seconds) => {
-        const minutes = Math.floor(seconds / 60)
-        const secondsRemainder = Math.round(seconds) % 60
-        const paddedSeconds = `0${secondsRemainder}`.slice(-2)
-        return `${minutes}:${paddedSeconds}`
-    }
-</script>
+<link rel="stylesheet" href="https://unpkg.com/bootstrap/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://unpkg.com/font-awesome/css/font-awesome.min.css">
+
 <style>
+    a { text-decoration: none }
     .jp-RenderedHTMLCommon {
         padding-right: 0 !important;
+    }
+    .jp-RenderedHTMLCommon th, .jp-RenderedHTMLCommon td {
+        text-align: left !important;
     }
     .waveform {
         background-color: black;
         cursor: pointer;
         position: relative;
-        width: {{ width }};
+        width: 100%;
     }
     .duration, .time {
         background: rgba(0, 0, 0, 0.75);
@@ -34,101 +23,19 @@
         bottom: 0;
         z-index: 11;
     }
-    .duration { right: 0; }
-    .time { left: 0; }
+    .duration { right: 0 }
+    .time { left: 0 }
 </style>
 <div id="waveform-{{ uuid }}" class="waveform">
     <div id="time-{{ uuid }}" class="time">0:00</div>
     <div id="duration-{{ uuid }}" class="duration">0:00</div>
 </div>
-{% if is_streaming %}
-<button id="playButton-{{ uuid }}" class="btn btn-danger me-3 my-3" style="box-shadow: none"><i class="fas fa-pause"></i></button>
-<script>
-    player_{{ uuid }} = new PCMPlayer('{{ uuid }}', { sampleRate: '{{ rate }}' });
-</script>
-{% endif %}
-<script>
-    wavesurfer_{{ uuid }} = WaveSurfer.create({
-        container: '#waveform-{{ uuid }}',
-        autoScroll: true,
-        waveColor: '#4BF2A7',
-        cursorColor: '#FF0000',
-        cursorWidth: 2,
-        progressColor: '#4BF2A7',
-        normalize: true,
-{% if not is_streaming %}
-        url: '{{ audio }}',
-        sampleRate: '{{ rate }}',
-{% endif %}
-        minPxPerSec: 100,
-        backend: 'WebAudio',
-    });
-    wavesurfer_{{ uuid }}.on('interaction', () => { wavesurfer_{{ uuid }}.playPause() });
-    wavesurfer_{{ uuid }}.on('decode', (duration) => (document.querySelector('#duration-{{ uuid }}').textContent = formatTime(duration)));
-    wavesurfer_{{ uuid }}.on('timeupdate', (currentTime) => (document.querySelector('#time-{{ uuid }}').textContent = formatTime(currentTime)));
-{% if enable_hover %}
-    wavesurfer_{{ uuid }}.registerPlugin(
-        WaveSurfer.Hover.create({
-            lineColor: '#DDDD',
-            lineWidth: 2,
-            labelBackground: '#5555',
-            labelColor: '#FFFF',
-            labelSize: '11px',
-        })
-    )
-{% endif %}
-{% if enable_timeline %}
-    wavesurfer_{{ uuid }}.registerPlugin(
-        WaveSurfer.Timeline.create({
-            height: 15,
-            timeInterval: 0.1,
-            primaryLabelInterval: 1,
-            insertPosition: 'beforebegin',
-            style: {
-            fontSize: '11px',
-            color: '#DDDD',
-            },
-        })
-    )
-{% endif %}
-{% if enable_minimap %}
-    wavesurfer_{{ uuid }}.registerPlugin(
-        WaveSurfer.Minimap.create({
-            height: 30,
-            waveColor: '#DDDD',
-            progressColor: '#9999',
-            normalize: true,
-            plugins: [WaveSurfer.Hover.create({
-                lineColor: '#DDDD',
-                lineWidth: 1,
-                labelBackground: '#5555',
-                labelColor: '#FFFF',
-                labelSize: '11px',
-            })],
-        })
-    )
-{% endif %}
-{% if enable_spectrogram %}
-    wavesurfer_{{ uuid }}.registerPlugin(
-        WaveSurfer.Spectrogram.create({
-            labels: true,
-            colorMap: 'roseus',
-            fftSamples: 2048,
-        })
-    )
-{% endif %}
-{% if enable_zoom %}
-    wavesurfer_{{ uuid }}.registerPlugin(
-        WaveSurfer.Zoom.create({
-            scale: 0.5,
-            maxZoom: 1000,
-        })
-    )
-{% endif %}
-</script>
+<button id="playButton-{{ uuid }}" class="btn btn-danger me-3 my-3" style="box-shadow: none" hidden>
+    <i class="fa fa-pause"></i>
+</button>
 {%- set label = "下载" if language == "zh" else "Download" %}
 <button id="downloadButton-{{ uuid }}" class="btn btn-success my-3">
-  {{ label }} <i class="fas fa-download"></i>
+    {{ label }} <i class="fa fa-download"></i>
 </button>
 <div class="dropup my-3 float-end text-end">
     <a href="https://github.com/pengzhendong/wavesurfer" target="_blank">
@@ -156,15 +63,17 @@
         </table>
     </ul>
 </div>
+
 <script>
+    if (typeof window.scriptLoaded === 'undefined') {
+        {{ script }}
+        window.scriptLoaded = true
+    }
+    player_{{ uuid }} = new Player('{{ uuid }}', {{ config | tojson | safe }})
     downloadButton_{{ uuid }} = document.getElementById('downloadButton-{{ uuid }}')
     downloadButton_{{ uuid }}.addEventListener('click', function() {
         const link = document.createElement('a')
-        {% if is_streaming %}
-            link.href = player_{{ uuid }}.url
-        {% else %}
-            link.href = wavesurfer_{{ uuid }}.options.url
-        {% endif %}
+        link.href = player_{{ uuid }}.url
         link.download = 'audio.wav'
         document.body.appendChild(link)
         link.click()

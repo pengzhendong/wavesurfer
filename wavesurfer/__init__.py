@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .wavesurfer import display_audio as display
+from typing import Literal
 
-__all__ = ["display"]
+from .player import Player
+
+
+def play(audio, rate: int = 16000, language: Literal["zh", "en"] = "en", verbose: bool = False):
+    Player(language, verbose).load(audio, rate)
+
+
+__all__ = ["Player", "play"]

@@ -6,40 +6,37 @@
 $ pip install wavesurfer
 ```
 
-- display wave file
+- play wave file
 
 ```python
-from wavesurfer import display
+from wavesurfer import play
 
-display("data/test_16k.wav")
+play("data/test_16k.wav")
 ```
 
-- display waveform
+- play waveform
 
 ```python
-import torchaudio
-from wavesurfer import display
+from audiolab import load_audio
+from wavesurfer import play
 
-waveform, rate = torchaudio.load("data/test_16k.wav")
-display(waveform, rate, enable_spectrogram=True)
+audio, rate = load_audio("data/test_16k.wav")
+play(audio, rate)
 ```
 
 ![](images/test_16k.png)
 
-- display streaming waveform
+- play streaming waveform
 
 ```python
 import time
-import torchaudio
-from wavesurfer import display
+from audiolab import load_audio
+from wavesurfer import play
 
 def audio_generator():
-    waveform, rate = torchaudio.load("data/test_16k.wav")
-    chunk_size_s = 0.3
-    chunk_size = int(chunk_size_s * rate)
-    for i in range(0, waveform.size(1), chunk_size):
-        time.sleep(0.1)  # RTF: 0.1/0.3 < 1
-        yield waveform[:, i:i + chunk_size]
+    for frame, rate in load_audio("data/test_16k.wav", frame_size_ms=300):
+        time.sleep(0.1)  # RTF: 0.1 / 0.3 < 1
+        yield frame
 
-display(audio_generator(), rate=16000)
+play(audio_generator(), 16000)
 ```

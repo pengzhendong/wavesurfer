@@ -1,6 +1,6 @@
 include requirements.txt
 include VERSION
-recursive-include wavesurfer/css *.css
+recursive-include wavesurfer/configs *.json
 recursive-include wavesurfer/js *.js
 recursive-include wavesurfer/templates *.txt
 
