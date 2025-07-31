@@ -33,23 +33,56 @@ template = """<table class="table table-bordered border-black">
 
 
 def table(dict: dict[str, list[str, str]]):
+    """
+    Generate an HTML table from a dictionary.
+
+    Args:
+        dict (dict[str, list[str, str]]): A dictionary where keys are column names and values are lists containing two strings: the header and the value.
+    """
     return Template(template).render(dict=dict)
 
 
 def load_template() -> str:
+    """
+    Load the Jinja2 template for rendering the player interface.
+
+    Returns:
+        str: The rendered template as a string.
+    """
     loader = FileSystemLoader(files("wavesurfer").joinpath("templates"))
     return Environment(loader=loader).get_template("wavesurfer.txt")
 
 
 def load_file(package: str, filepath: str) -> str:
+    """
+    Load a file from the specified package and filepath.
+
+    Args:
+        package (str): The package name from which to load the file.
+        filepath (str): The path to the file within the package.
+    Returns:
+        str: The contents of the file as a string.
+    """
     return files(package).joinpath(filepath).read_text(encoding="utf-8")
 
 
 def load_config() -> dict:
+    """
+    Load the configuration for the player from a JSON file.
+
+    Returns:
+        dict: The configuration dictionary loaded from the JSON file.
+    """
     return json.loads(load_file("wavesurfer.configs", "player.json"))
 
 
 def load_script():
+    """
+    Load the JavaScript files required for the player.
+
+    Returns:
+        str: The concatenated JavaScript code as a string.
+    """
     js = load_file("wavesurfer.js", "wavesurfer.min.js")
     for plugin in ["hover", "minimap", "spectrogram", "timeline", "zoom"]:
         js += load_file("wavesurfer.js.plugins", f"{plugin}.min.js")

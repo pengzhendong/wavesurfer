@@ -1,32 +1,51 @@
 # wavesurfer
 
-## Usage
+[![PyPI](https://img.shields.io/pypi/v/wavesurfer)](https://pypi.org/project/wavesurfer/)
+[![License](https://img.shields.io/github/license/pengzhendong/wavesurfer)](LICENSE)
+
+A Python package for audio visualization and playback in Jupyter notebooks.
+
+## Features
+
+- Visualize audio waveforms in Jupyter notebooks
+- Support for various audio formats (WAV, MP3, FLAC, etc.)
+- Streaming audio playback for real-time applications
+- Programmatic control with play/pause functionality
+- Performance monitoring with latency and RTF metrics
+
+## Installation
 
 ```bash
-$ pip install wavesurfer
+pip install wavesurfer
 ```
 
-- play wave file
+## Usage
+
+### Basic Playback
+
+Play a wave file directly:
 
 ```python
 from wavesurfer import play
 
-play("data/test_16k.wav")
+play("assets/test_16k.wav")
 ```
 
-- play waveform
+![](assets/test_16k.png)
+
+Play waveform data:
 
 ```python
 from audiolab import load_audio
 from wavesurfer import play
 
-audio, rate = load_audio("data/test_16k.wav")
+audio, rate = load_audio("assets/test_16k.wav")
 play(audio, rate)
 ```
 
-![](images/test_16k.png)
+### Streaming Playback
 
-- play streaming waveform
+Play streaming waveform data:
 
 ```python
 import time
@@ -34,9 +53,33 @@ from audiolab import load_audio
 from wavesurfer import play
 
 def audio_generator():
-    for frame, rate in load_audio("data/test_16k.wav", frame_size_ms=300):
+    for frame, rate in load_audio("assets/test_16k.wav", frame_size_ms=300):
         time.sleep(0.1)  # RTF: 0.1 / 0.3 < 1
         yield frame
 
 play(audio_generator(), 16000)
 ```
+
+### Programmatic Control
+
+For more advanced usage, you can use the `Player` class directly to have programmatic control over playback:
+
+```python
+from wavesurfer import Player
+
+# Create a player instance
+player = Player()
+
+# Load audio
+player.load("assets/test_16k.wav")
+
+# Programmatically control playback
+player.play()   # Start playback
+player.pause()  # Pause playback
+```
+
+The `Player` class also supports all the audio formats that the `play` function supports, including file paths, waveform data, and streaming generators.
+
+## License
+
+[BSD 2-Clause License](LICENSE)

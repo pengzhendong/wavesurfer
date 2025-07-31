@@ -43,25 +43,60 @@ class Player:
             }
             self.display_id = display(HTML(table(self.performance)), display_id=True)
 
-    def render(self, script):
+    def render(self, script: str):
+        """
+        Render a script in the Jupyter notebook. This method injects the provided script into the notebook's HTML output.
+
+        Args:
+            script (str): The script to be rendered.
+        """
         display(HTML(f"<script>{script}</script>"))
 
     def reset(self, is_streaming: bool = False):
+        """
+        Reset the player to its initial state. This method clears the current audio and resets the player.
+
+        Args:
+            is_streaming (bool): If True, the player is reset for streaming audio; otherwise, it is reset for non-streaming audio.
+        """
         self.render(f"player_{self.uuid}.reset({'true' if is_streaming else 'false'})")
 
     def set_rate(self, rate: int = 16000):
+        """
+        Set the sample rate for the player.
+
+        Args:
+            rate (int): The sample rate to be set for the player.
+        """
         self.render(f"player_{self.uuid}.sampleRate = {rate}")
 
     def set_done(self):
+        """
+        Mark the player as done. This method is typically called when the audio playback is complete.
+        """
         self.render(f"player_{self.uuid}.setDone()")
 
     def play(self):
+        """
+        Start playback of the audio loaded in the player. This method triggers the audio playback process.
+        """
         self.render(f"player_{self.uuid}.play()")
 
     def pause(self):
+        """
+        Pause the audio playback. This method stops the audio playback temporarily.
+        """
         self.render(f"player_{self.uuid}.pause()")
 
-    def feed(self, idx, chunk, rate: int, timer: Timer):
+    def feed(self, idx: int, chunk: np.ndarray, rate: int, timer: Timer):
+        """
+        Feed a chunk of audio data to the player. This method processes the audio chunk and updates the player state.
+
+        Args:
+            idx (int): The index of the audio chunk.
+            chunk (np.ndarray): The audio data chunk to be fed to the player.
+            rate (int): The sample rate of the audio data.
+            timer (Timer): A Timer instance to measure the performance of the audio processing."""
         if self.verbose:
             if idx == 0:
                 self.performance["latency"][1] = f"{int(timer.elapsed() * 1000)}ms"

@@ -1,4 +1,0 @@
-audiolab
-jinja2
-lhotse
-numpy

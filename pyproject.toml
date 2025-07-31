@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wavesurfer"
+authors = [{ name = "Zhendong Peng", email = "pzd17@tsinghua.org.cn" }]
+description = "TorchAudio Forced Aligner"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "audiolab",
+    "jinja2",
+    "lhotse",
+]
+
+[project.urls]
+Homepage = "https://github.com/pengzhendong/wavesurfer"
+Documentation = "https://github.com/pengzhendong/wavesurfer#readme"
+BugTracker = "https://github.com/pengzhendong/wavesurfer/issues"
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[tool.setuptools.packages.find]
+exclude = ["assets", "assets.*"]
+
+[tool.setuptools.package-data]
+wavesurfer = [
+    "configs/*.json",
+    "js/**/*.js",
+    "templates/*.txt",
+]
