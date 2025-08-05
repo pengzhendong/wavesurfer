@@ -10,12 +10,7 @@
     "progressColor": "#4BF2A7",
     "waveColor": "#4BF2A7"
   },
-  "plugins": [
-    "hover",
-    "minimap",
-    "timeline",
-    "zoom"
-  ],
+  "plugins": ["hover", "minimap", "timeline", "zoom"],
   "pluginOptions": {
     "hover": {
       "labelBackground": "#5555",
@@ -29,6 +24,11 @@
       "normalize": true,
       "progressColor": "#9999",
       "waveColor": "#DDDD"
+    },
+    "regions": {
+      "color": "rgba(255,255,255,0.75)",
+      "drag": false,
+      "resize": false
     },
     "spectrogram": {
       "colorMap": "roseus",

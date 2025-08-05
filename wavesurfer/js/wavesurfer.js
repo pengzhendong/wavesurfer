@@ -11,20 +11,13 @@ function createPlugins(config) {
     minimap: () =>
       WaveSurfer.Minimap.create({
         ...config.pluginOptions?.minimap,
-        plugins: [
-          WaveSurfer.Hover.create({
-            ...config.pluginOptions?.hover,
-            lineWidth: 1,
-          }),
-        ],
+        plugins: [WaveSurfer.Hover.create({...config.pluginOptions?.hover, lineWidth: 1})],
       }),
     spectrogram: () => WaveSurfer.Spectrogram.create(config.pluginOptions?.spectrogram),
     timeline: () => WaveSurfer.Timeline.create(config.pluginOptions?.timeline),
     zoom: () => WaveSurfer.Zoom.create(config.pluginOptions?.zoom),
   }
-  return Array.from(config.plugins ?? [])
-    .map((plugin) => pluginMap[plugin]?.())
-    .filter(Boolean)
+  return Array.from(config.plugins ?? []).map((plugin) => pluginMap[plugin]?.()).filter(Boolean)
 }
 
 (function() {
@@ -58,9 +51,30 @@ function createPlugins(config) {
           })
           this.wavesurfer.on('error', (err) => reject(err))
         })
-        this.wavesurfer.on('interaction', () => { this.wavesurfer.playPause() })
-        this.wavesurfer.on('decode', (duration) => (document.querySelector(`#duration-${uuid}`).textContent = formatTime(duration)))
-        this.wavesurfer.on('timeupdate', (currentTime) => (document.querySelector(`#time-${uuid}`).textContent = formatTime(currentTime)))
+        this.wavesurfer.on('timeupdate', (currentTime) => document.querySelector(`#time-${uuid}`).textContent = formatTime(currentTime))
+
+        this.regions = []
+        let activeRegion = null
+        this.regions_plugin = WaveSurfer.Regions.create()
+        this.regions_plugin.on('region-in', (region) => activeRegion = region)
+        this.regions_plugin.on('region-out', (region) => {if (activeRegion === region) activeRegion = null})
+        this.regions_plugin.on('region-clicked', (region, e) => {
+          e.stopPropagation()
+          activeRegion = region
+          region.play(true)
+        })
+        this.wavesurfer.registerPlugin(this.regions_plugin)
+
+        this.wavesurfer.on('decode', (duration) => {
+          document.querySelector(`#duration-${uuid}`).textContent = formatTime(duration)
+          for (const region of this.regions.map(region => ({ ...region, ...config.pluginOptions?.regions }))) {
+            this.regions_plugin.addRegion(region)
+          }
+        })
+        this.wavesurfer.on('interaction', () => {
+          this.wavesurfer.playPause()
+          activeRegion = null
+        })
       }
 
       get url() {
@@ -89,7 +103,8 @@ function createPlugins(config) {
         this.wavesurfer.setTime(0)
       }
 
-      async load(url) {
+      async load(url, regions=[]) {
+        this.regions = regions
         if (this.isStreaming) {
           this.pcmPlayer.feed(url)
           url = this.url

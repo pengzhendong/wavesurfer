@@ -18,6 +18,7 @@ dependencies = [
     "audiolab",
     "jinja2",
     "lhotse",
+    "tgt",
 ]
 
 [project.urls]

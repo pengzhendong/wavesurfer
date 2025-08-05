@@ -15,7 +15,7 @@
 import asyncio
 from inspect import isasyncgen, isgenerator
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import uuid4
 
 import numpy as np
@@ -23,10 +23,11 @@ from audiolab import encode
 from IPython.display import HTML, display
 from lhotse import Recording
 from lhotse.cut.base import Cut
+from lhotse.supervision import AlignmentItem
+from tgt import Interval
 
-from .timer import Timer
-from .utils import TEMPLATE as render
-from .utils import table
+from wavesurfer.timer import Timer
+from wavesurfer.utils import TEMPLATE, load_alignments, table
 
 
 class Player:
@@ -34,7 +35,7 @@ class Player:
         self.uuid = str(uuid4().hex)
         self.language = language
         self.verbose = verbose
-        display(HTML(render(uuid=self.uuid, language=language.lower())))
+        display(HTML(TEMPLATE(uuid=self.uuid, language=language.lower())))
         if self.verbose:
             self.duration = 0
             self.performance = {
@@ -113,13 +114,19 @@ class Player:
         self,
         audio: Union[str, Path, np.ndarray, Cut, Recording],
         rate: Optional[int] = None,
+        alignments: Optional[Union[str, Path, List[AlignmentItem], List[Interval], List[Dict[str, Any]]]] = None,
+        merge: bool = True,
     ):
         """
         Render audio data and return the rendered result.
 
-        :param audio: Audio data to be rendered.
-        :param rate: Sample rate of the audio data.
+        Args:
+            audio (Union[str, Path, np.ndarray, Cut, Recording]): Audio data to be rendered.
+            rate (Optional[int]): Sample rate of the audio data.
+            alignments (Optional[Union[str, Path, List[AlignmentItem], List[Dict[str, Any]]]]): Path to the text grid file, or a list of alignments to be rendered.
+            merge (bool): Whether to merge overlapping alignments.
         """
+
         timer = Timer(language=self.language)
         if isasyncgen(audio) or isgenerator(audio):
             self.reset(is_streaming=True)
@@ -143,4 +150,5 @@ class Player:
             self.reset(is_streaming=False)
             audio, rate = encode(audio, rate, to_mono=True)
             self.set_rate(rate)
-            self.render(f"player_{self.uuid}.load('{audio}')")
+            regions = [] if alignments is None else load_alignments(alignments, merge)
+            self.render(f"player_{self.uuid}.load('{audio}', {regions})")
