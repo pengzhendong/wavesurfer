@@ -12,6 +12,7 @@ A Python package for audio visualization and playback in Jupyter notebooks.
 - Streaming audio playback for real-time applications
 - Programmatic control with play/pause functionality
 - Performance monitoring with latency and RTF metrics
+- Display alignment information on waveforms
 
 ## Installation
 
@@ -41,6 +42,34 @@ from wavesurfer import play
 
 audio, rate = load_audio("assets/test_16k.wav")
 play(audio, rate)
+```
+
+### Displaying Alignments
+
+Display alignment information on the waveform:
+
+```python
+from wavesurfer import play
+
+# Play with alignment information from a TextGrid file
+play("assets/test_16k.wav", alignments="assets/test_16k.TextGrid")
+```
+
+![](assets/test_16k_regions.png)
+
+You can also provide alignments as a list of alignment items:
+
+```python
+from wavesurfer import play
+
+# Create alignment items
+alignments = [
+    {"start": 0.0, "end": 0.5, "content": "hello"},
+    {"start": 0.5, "end": 1.0, "content": "world"},
+]
+
+# Play with alignment information
+play("assets/test_16k.wav", alignments=alignments)
 ```
 
 ### Streaming Playback
