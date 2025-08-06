@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-from functools import partial
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, Dict, List, Union
@@ -35,6 +34,18 @@ template = """<table class="table table-bordered border-black">
         {%- endfor %}
     </tr>
 </table>"""
+
+
+def merge_dicts(d1, d2):
+    for k in d2:
+        if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
+            merge_dicts(d1[k], d2[k])
+        else:
+            if isinstance(d1[k], list):
+                d1[k] = d1[k] + d2[k]
+            else:
+                d1[k] = d2[k]
+    return d1
 
 
 def load_alignments(
@@ -75,14 +86,17 @@ def load_alignments(
     return regions
 
 
-def load_config() -> dict:
+def load_config(config: Dict[str, Any] = {}) -> Dict[str, Any]:
     """
     Load the configuration for the player from a JSON file.
 
+    Args:
+        config (dict): A dictionary of configuration options.
     Returns:
-        dict: The configuration dictionary loaded from the JSON file.
+        Dict[str, Any]: The configuration dictionary loaded from the JSON file and merged with the provided configuration.
     """
-    return json.loads(load_file("wavesurfer.configs", "player.json"))
+    default_config = json.loads(load_file("wavesurfer.configs", "player.json"))
+    return merge_dicts(default_config, config)
 
 
 def load_file(package: str, filepath: str) -> str:
@@ -106,7 +120,7 @@ def load_script():
         str: The concatenated JavaScript code as a string.
     """
     js = load_file("wavesurfer.js", "wavesurfer.min.js")
-    for plugin in ["hover", "minimap", "regions", "spectrogram", "timeline", "zoom"]:
+    for plugin in ["hover", "minimap", "regions", "spectrogram", "spectrogram-windowed", "timeline", "zoom"]:
         js += load_file("wavesurfer.js.plugins", f"{plugin}.min.js")
     js += load_file("wavesurfer.js", "pcm-player.js")
     js += load_file("wavesurfer.js", "wavesurfer.js")
@@ -135,6 +149,3 @@ def table(dict: dict[str, list[str, str]]) -> str:
         str: The HTML table as a string.
     """
     return Template(template).render(dict=dict)
-
-
-TEMPLATE = partial(load_template().render, config=load_config(), script=load_script())

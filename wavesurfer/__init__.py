@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
 from lhotse import Recording
@@ -28,6 +28,7 @@ def play(
     audio: Union[str, Path, np.ndarray, Cut, Recording],
     rate: int = 16000,
     alignments: Optional[Union[str, Path, List[AlignmentItem], List[Interval]]] = None,
+    config: Dict[str, Any] = {},
     language: Literal["zh", "en"] = "en",
     verbose: bool = False,
 ):
@@ -38,10 +39,11 @@ def play(
         audio (Union[str, Path, np.ndarray, Cut, Recording]): Audio data to be rendered.
         rate (int): Sample rate of the audio data.
         alignments (Optional[Union[str, Path, List[AlignmentItem], List[Interval]]]): Path to the text grid file, or a list of alignments to be rendered.
+        config (Dict[str, Any]): Configuration options for the player.
         language (Literal["zh", "en"]): Language of the UI.
         verbose (bool): Whether to display performance metrics.
     """
-    Player(language, verbose).load(audio, rate, alignments)
+    Player(config, language, verbose).load(audio, rate, alignments)
 
 
 __all__ = ["Player", "play"]

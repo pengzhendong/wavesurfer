@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+from functools import partial
 from inspect import isasyncgen, isgenerator
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -27,15 +28,17 @@ from lhotse.supervision import AlignmentItem
 from tgt import Interval
 
 from wavesurfer.timer import Timer
-from wavesurfer.utils import TEMPLATE, load_alignments, table
+from wavesurfer.utils import load_alignments, load_config, load_script, load_template, table
 
 
 class Player:
-    def __init__(self, language: Literal["zh", "en"] = "en", verbose: bool = False):
+    def __init__(self, config: Dict[str, Any] = {}, language: Literal["zh", "en"] = "en", verbose: bool = False):
         self.uuid = str(uuid4().hex)
+        self.config = load_config(config)
         self.language = language
         self.verbose = verbose
-        display(HTML(TEMPLATE(uuid=self.uuid, language=language.lower())))
+        template = partial(load_template().render, config=self.config, script=load_script())
+        display(HTML(template(uuid=self.uuid, language=language.lower())))
         if self.verbose:
             self.duration = 0
             self.performance = {
@@ -97,7 +100,8 @@ class Player:
             idx (int): The index of the audio chunk.
             chunk (np.ndarray): The audio data chunk to be fed to the player.
             rate (int): The sample rate of the audio data.
-            timer (Timer): A Timer instance to measure the performance of the audio processing."""
+            timer (Timer): A Timer instance to measure the performance of the audio processing.
+        """
         if self.verbose:
             if idx == 0:
                 self.performance["latency"][1] = f"{int(timer.elapsed() * 1000)}ms"
@@ -126,7 +130,6 @@ class Player:
             alignments (Optional[Union[str, Path, List[AlignmentItem], List[Dict[str, Any]]]]): Path to the text grid file, or a list of alignments to be rendered.
             merge (bool): Whether to merge overlapping alignments.
         """
-
         timer = Timer(language=self.language)
         if isasyncgen(audio) or isgenerator(audio):
             self.reset(is_streaming=True)

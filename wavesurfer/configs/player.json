@@ -33,6 +33,7 @@
     "spectrogram": {
       "colorMap": "roseus",
       "fftSamples": 2048,
+      "useWebWorker": true,
       "labels": true
     },
     "timeline": {

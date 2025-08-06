@@ -38,7 +38,8 @@ class Timer:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Stop the timer and log the elapsed time. This method is called when exiting the context manager.
-        If an exception occurs, it will be logged."""
+        If an exception occurs, it will be logged.
+        """
         self.end_time = time.perf_counter()
         elapsed = self.end_time - self.start_time
         if self.name:
@@ -49,7 +50,8 @@ class Timer:
     def __str__(self):
         """
         Return a string representation of the timer, including the name, cost label, elapsed time, and unit.
-        If the timer has not been started, it raises an error."""
+        If the timer has not been started, it raises an error.
+        """
         return (
             f"[{self.name}] {self.cost_label}: {self.elapsed():.6f} {self.unit}"
             if self.name

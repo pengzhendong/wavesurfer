@@ -13,7 +13,8 @@ function createPlugins(config) {
         ...config.pluginOptions?.minimap,
         plugins: [WaveSurfer.Hover.create({...config.pluginOptions?.hover, lineWidth: 1})],
       }),
-    spectrogram: () => WaveSurfer.Spectrogram.create(config.pluginOptions?.spectrogram),
+    // spectrogram: () => WaveSurfer.Spectrogram.create(config.pluginOptions?.spectrogram),
+    spectrogram: () => WaveSurfer["Spectrogram-windowed"].create(config.pluginOptions?.spectrogram),
     timeline: () => WaveSurfer.Timeline.create(config.pluginOptions?.timeline),
     zoom: () => WaveSurfer.Zoom.create(config.pluginOptions?.zoom),
   }
