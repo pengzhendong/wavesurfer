@@ -49,13 +49,13 @@ def merge_dicts(d1, d2):
 
 
 def load_alignments(
-    alignments: Union[str, Path, List[AlignmentItem], List[Interval], List[Dict[str, Any]]], merge=False
+    alignments: Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]], merge=False
 ) -> List[Dict[str, Any]]:
     """
     Load alignment intervals from a text grid file, or a list of alignment items.
 
     Args:
-        alignments (Union[str, Path, List[AlignmentItem], List[Interval], List[Dict[str, Any]]): The path to the text grid file, or a list of alignment items.
+        alignments (Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]): The path to the text grid file, or a list of alignment items.
         merge (bool): Whether to merge overlapping alignments.
     Returns:
         List[Dict[str, Any]]: A list of alignment regions.
@@ -66,9 +66,12 @@ def load_alignments(
     if isinstance(alignments, str):
         for interval in read_textgrid(alignments).tiers[0].intervals:
             regions.append({"start": interval.start_time, "end": interval.end_time, "content": interval.text})
-    elif isinstance(alignments, List[AlignmentItem]):
+    elif isinstance(alignments, List):
         for alignment in alignments:
-            regions.append({"start": alignment.start, "end": alignment.end, "content": alignment.symbol})
+            if isinstance(alignment, AlignmentItem):
+                regions.append({"start": alignment.start, "end": alignment.end, "content": alignment.symbol})
+            else:
+                regions.append(alignment)
 
     if merge:
         merged_regions = []
@@ -80,7 +83,7 @@ def load_alignments(
                 if last["end"] < region["start"]:
                     merged_regions.append(region)
                 else:
-                    last["content"] += region["content"]
+                    last["content"] += " " + region["content"]
                     last["end"] = region["end"]
         regions = merged_regions
     return regions

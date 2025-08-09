@@ -118,7 +118,7 @@ class Player:
         self,
         audio: Union[str, Path, np.ndarray, Cut, Recording],
         rate: Optional[int] = None,
-        alignments: Optional[Union[str, Path, List[AlignmentItem], List[Interval], List[Dict[str, Any]]]] = None,
+        alignments: Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]] = None,
         merge: bool = True,
     ):
         """
@@ -127,7 +127,7 @@ class Player:
         Args:
             audio (Union[str, Path, np.ndarray, Cut, Recording]): Audio data to be rendered.
             rate (Optional[int]): Sample rate of the audio data.
-            alignments (Optional[Union[str, Path, List[AlignmentItem], List[Dict[str, Any]]]]): Path to the text grid file, or a list of alignments to be rendered.
+            alignments (Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]]): Path to the text grid file, or a list of alignments to be rendered.
             merge (bool): Whether to merge overlapping alignments.
         """
         timer = Timer(language=self.language)
