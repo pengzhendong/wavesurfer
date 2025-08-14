@@ -6,7 +6,7 @@
     "cursorColor": "#FF0000",
     "cursorWidth": 2,
     "minPxPerSec": 100,
-    "normalize": true,
+    "normalize": false,
     "progressColor": "#4BF2A7",
     "waveColor": "#4BF2A7"
   },
