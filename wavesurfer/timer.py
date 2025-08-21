@@ -15,7 +15,7 @@
 import logging
 import time
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Timer:
@@ -43,9 +43,9 @@ class Timer:
         self.end_time = time.perf_counter()
         elapsed = self.end_time - self.start_time
         if self.name:
-            logging.info(f"[{self.name}] {self.cost_label}: {elapsed:.6f} {self.unit}")
+            logger.info(f"[{self.name}] {self.cost_label}: {elapsed:.6f} {self.unit}")
         else:
-            logging.info(f"{self.cost_label}: {elapsed:.6f} {self.unit}")
+            logger.info(f"{self.cost_label}: {elapsed:.6f} {self.unit}")
 
     def __str__(self):
         """
@@ -78,5 +78,5 @@ class Timer:
         elapsed = end_time - self.start_time
 
         if self.verbose:
-            logging.info(self.str())
+            logger.info(self.str())
         return elapsed

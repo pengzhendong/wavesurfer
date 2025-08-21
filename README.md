@@ -52,7 +52,7 @@ Display alignment information on the waveform:
 from wavesurfer import play
 
 # Play with alignment information from a TextGrid file
-play("assets/test_16k.wav", alignments="assets/test_16k.TextGrid")
+play("assets/test_16k.wav", alignments="assets/test_16k.TextGrid", config={"options": {"normalize": True}})
 ```
 
 ![](assets/test_16k_regions.png)

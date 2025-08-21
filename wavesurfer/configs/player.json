@@ -28,7 +28,9 @@
     "regions": {
       "color": "rgba(255,255,255,0.75)",
       "drag": false,
-      "resize": false
+      "resize": false,
+      "border": "1px dashed #e74c3c",
+      "contentColor": "#016780"
     },
     "spectrogram": {
       "colorMap": "roseus",

@@ -54,22 +54,29 @@ function createPlugins(config) {
         })
         this.wavesurfer.on('timeupdate', (currentTime) => document.querySelector(`#time-${uuid}`).textContent = formatTime(currentTime))
 
-        this.regions = []
         let activeRegion = null
-        this.regions_plugin = WaveSurfer.Regions.create()
-        this.regions_plugin.on('region-in', (region) => activeRegion = region)
-        this.regions_plugin.on('region-out', (region) => {if (activeRegion === region) activeRegion = null})
-        this.regions_plugin.on('region-clicked', (region, e) => {
+        this.regionsPlugin = WaveSurfer.Regions.create()
+        this.regionsPlugin.on('region-in', (region) => activeRegion = region)
+        this.regionsPlugin.on('region-out', (region) => {if (activeRegion === region) activeRegion = null})
+        this.regionsPlugin.on('region-clicked', (region, e) => {
           e.stopPropagation()
           activeRegion = region
           region.play(true)
         })
-        this.wavesurfer.registerPlugin(this.regions_plugin)
+        this.wavesurfer.registerPlugin(this.regionsPlugin)
 
+        this.regions = []
         this.wavesurfer.on('decode', (duration) => {
           document.querySelector(`#duration-${uuid}`).textContent = formatTime(duration)
-          for (const region of this.regions.map(region => ({ ...region, ...config.pluginOptions?.regions }))) {
-            this.regions_plugin.addRegion(region)
+          for (const regionParams of this.regions.map(region => ({ ...region, ...config.pluginOptions?.regions }))) {
+            let region = this.regionsPlugin.addRegion(regionParams)
+            region.content.style.color = regionParams.contentColor
+            Object.assign(region.element.style, {
+              border: regionParams.border,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            })
           }
         })
         this.wavesurfer.on('interaction', () => {
