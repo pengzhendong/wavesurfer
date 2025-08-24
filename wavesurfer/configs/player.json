@@ -30,6 +30,7 @@
       "drag": false,
       "resize": false,
       "border": "1px dashed #e74c3c",
+      "height": "128px",
       "contentColor": "#016780"
     },
     "spectrogram": {

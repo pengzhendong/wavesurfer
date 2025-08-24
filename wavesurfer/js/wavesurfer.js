@@ -73,6 +73,7 @@ function createPlugins(config) {
             region.content.style.color = regionParams.contentColor
             Object.assign(region.element.style, {
               border: regionParams.border,
+              height: regionParams.height,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center'
