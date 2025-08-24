@@ -119,7 +119,8 @@ class Player:
         audio: Union[str, Path, np.ndarray, Cut, Recording],
         rate: Optional[int] = None,
         alignments: Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]] = None,
-        merge: bool = True,
+        concat: bool = False,
+        merge: bool = False,
     ):
         """
         Render audio data and return the rendered result.
@@ -128,6 +129,7 @@ class Player:
             audio (Union[str, Path, np.ndarray, Cut, Recording]): Audio data to be rendered.
             rate (Optional[int]): Sample rate of the audio data.
             alignments (Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]]): Path to the text grid file, or a list of alignments to be rendered.
+            concat (bool): Whether to concat overlapping alignments.
             merge (bool): Whether to merge overlapping alignments.
         """
         timer = Timer(language=self.language)
@@ -153,5 +155,5 @@ class Player:
             self.reset(is_streaming=False)
             audio, rate = encode(audio, rate, to_mono=True)
             self.set_rate(rate)
-            regions = [] if alignments is None else load_alignments(alignments, merge)
+            regions = [] if alignments is None else load_alignments(alignments, concat, merge)
             self.render(f"player_{self.uuid}.load('{audio}', {regions})")
