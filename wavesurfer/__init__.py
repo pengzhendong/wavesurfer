@@ -22,13 +22,14 @@ from lhotse.supervision import AlignmentItem
 from tgt import Interval
 
 from wavesurfer.player import Player
+from wavesurfer.utils import render
 
 
 def play(
     audio: Union[str, Path, np.ndarray, Cut, Recording],
     rate: int = 16000,
     alignments: Optional[Union[str, Path, List[AlignmentItem], List[Interval]]] = None,
-    config: Dict[str, Any] = {},
+    config: Dict[str, Any] = None,
     language: Literal["zh", "en"] = "en",
     verbose: bool = False,
 ):
@@ -46,4 +47,4 @@ def play(
     Player(config, language, verbose).load(audio, rate, alignments)
 
 
-__all__ = ["Player", "play"]
+__all__ = ["Player", "play", "render"]

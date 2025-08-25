@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+from IPython.display import HTML, display
 from jinja2 import Environment, FileSystemLoader, Template
 from lhotse.supervision import AlignmentItem
 from matplotlib.colors import Colormap
@@ -169,6 +170,16 @@ def load_template() -> str:
     """
     loader = FileSystemLoader(files("wavesurfer").joinpath("templates"))
     return Environment(loader=loader).get_template("wavesurfer.txt")
+
+
+def render(script: str):
+    """
+    Render a script in the Jupyter notebook. This method injects the provided script into the notebook's HTML output.
+
+    Args:
+        script (str): The script to be rendered.
+    """
+    display(HTML(f"<script>{script}</script>"))
 
 
 def table(dict: dict[str, list[str, str]]) -> str:

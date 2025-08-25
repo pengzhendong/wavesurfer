@@ -43,9 +43,9 @@ class Timer:
         self.end_time = time.perf_counter()
         elapsed = self.end_time - self.start_time
         if self.name:
-            logger.info(f"[{self.name}] {self.cost_label}: {elapsed:.6f} {self.unit}")
+            logger.info("[%s] %s: %.6f %s", self.name, self.cost_label, elapsed, self.unit)
         else:
-            logger.info(f"{self.cost_label}: {elapsed:.6f} {self.unit}")
+            logger.info("%s: %.6f %s", self.cost_label, elapsed, self.unit)
 
     def __str__(self):
         """
@@ -78,5 +78,5 @@ class Timer:
         elapsed = end_time - self.start_time
 
         if self.verbose:
-            logger.info(self.str())
+            logger.info(str(self))
         return elapsed

@@ -28,7 +28,7 @@ from lhotse.supervision import AlignmentItem
 from tgt import Interval
 
 from wavesurfer.timer import Timer
-from wavesurfer.utils import load_alignments, load_config, load_script, load_template, table
+from wavesurfer.utils import load_alignments, load_config, load_script, load_template, render, table
 
 
 class Player:
@@ -48,15 +48,6 @@ class Player:
             }
             self.display_id = display(HTML(table(self.performance)), display_id=True)
 
-    def render(self, script: str):
-        """
-        Render a script in the Jupyter notebook. This method injects the provided script into the notebook's HTML output.
-
-        Args:
-            script (str): The script to be rendered.
-        """
-        display(HTML(f"<script>{script}</script>"))
-
     def reset(self, is_streaming: bool = False):
         """
         Reset the player to its initial state. This method clears the current audio and resets the player.
@@ -64,7 +55,7 @@ class Player:
         Args:
             is_streaming (bool): If True, the player is reset for streaming audio; otherwise, it is reset for non-streaming audio.
         """
-        self.render(f"player_{self.uuid}.reset({'true' if is_streaming else 'false'})")
+        render(f"player_{self.uuid}.reset({'true' if is_streaming else 'false'})")
 
     def set_rate(self, rate: int = 16000):
         """
@@ -73,25 +64,25 @@ class Player:
         Args:
             rate (int): The sample rate to be set for the player.
         """
-        self.render(f"player_{self.uuid}.sampleRate = {rate}")
+        render(f"player_{self.uuid}.sampleRate = {rate}")
 
     def set_done(self):
         """
         Mark the player as done. This method is typically called when the audio playback is complete.
         """
-        self.render(f"player_{self.uuid}.setDone()")
+        render(f"player_{self.uuid}.setDone()")
 
     def play(self):
         """
         Start playback of the audio loaded in the player. This method triggers the audio playback process.
         """
-        self.render(f"player_{self.uuid}.play()")
+        render(f"player_{self.uuid}.play()")
 
     def pause(self):
         """
         Pause the audio playback. This method stops the audio playback temporarily.
         """
-        self.render(f"player_{self.uuid}.pause()")
+        render(f"player_{self.uuid}.pause()")
 
     def feed(self, idx: int, chunk: np.ndarray, rate: int, timer: Timer):
         """
@@ -113,7 +104,7 @@ class Player:
         base64_pcm, _ = encode(chunk, make_wav=False, to_mono=True)
         if rate is not None:
             self.set_rate(rate)
-        self.render(f"player_{self.uuid}.load('{base64_pcm}')")
+        render(f"player_{self.uuid}.load('{base64_pcm}')")
 
     def load(
         self,
@@ -157,4 +148,4 @@ class Player:
             audio, rate = encode(audio, rate, to_mono=True)
             self.set_rate(rate)
             regions = [] if alignments is None else load_alignments(alignments, concat, merge)
-            self.render(f"player_{self.uuid}.load('{audio}', {regions})")
+            render(f"player_{self.uuid}.load('{audio}', {regions})")
