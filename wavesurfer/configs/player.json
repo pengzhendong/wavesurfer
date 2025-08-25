@@ -35,7 +35,9 @@
     },
     "spectrogram": {
       "colorMap": "roseus",
-      "fftSamples": 2048,
+      "height": 320,
+      "fftSamples": 1024,
+      "frequencyMax": 8000,
       "useWebWorker": true,
       "labels": true
     },

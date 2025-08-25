@@ -15,10 +15,13 @@
 import json
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
+import matplotlib.pyplot as plt
+import numpy as np
 from jinja2 import Environment, FileSystemLoader, Template
 from lhotse.supervision import AlignmentItem
+from matplotlib.colors import Colormap
 from tgt import Interval
 from tgt.io import read_textgrid
 
@@ -40,12 +43,26 @@ def merge_dicts(d1, d2):
     for k in d2:
         if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
             merge_dicts(d1[k], d2[k])
+        elif k in d1 and isinstance(d1[k], list) and isinstance(d2[k], list):
+            d1[k] = d1[k] + d2[k]
         else:
-            if isinstance(d1[k], list):
-                d1[k] = d1[k] + d2[k]
-            else:
-                d1[k] = d2[k]
+            d1[k] = d2[k]
     return d1
+
+
+def get_cmap(name: Optional[Union[Colormap, str]]) -> List[List[float]]:
+    """
+    Retrieve a colormap by name and convert it to a list of 256 RGB(A) color values.
+    Note: https://bids.github.io/colormap
+
+    Args:
+        name: Name of the colormap.
+    Returns:
+        List of 256 RGB(A) color values.
+    """
+    cmap = plt.get_cmap(name)
+    gradient = np.linspace(0, 1, 256)
+    return cmap(gradient).tolist()
 
 
 def load_alignments(
@@ -96,7 +113,7 @@ def load_alignments(
     return regions
 
 
-def load_config(config: Dict[str, Any] = {}) -> Dict[str, Any]:
+def load_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Load the configuration for the player from a JSON file.
 
@@ -106,7 +123,12 @@ def load_config(config: Dict[str, Any] = {}) -> Dict[str, Any]:
         Dict[str, Any]: The configuration dictionary loaded from the JSON file and merged with the provided configuration.
     """
     default_config = json.loads(load_file("wavesurfer.configs", "player.json"))
-    return merge_dicts(default_config, config)
+    config = merge_dicts(default_config, config if config is not None else {})
+    spectrogram = config["pluginOptions"]["spectrogram"]
+    cmap = spectrogram["colorMap"]
+    if isinstance(cmap, str) and cmap != "roseus":
+        spectrogram["colorMap"] = get_cmap(cmap)
+    return config
 
 
 def load_file(package: str, filepath: str) -> str:

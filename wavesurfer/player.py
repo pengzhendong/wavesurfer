@@ -32,11 +32,12 @@ from wavesurfer.utils import load_alignments, load_config, load_script, load_tem
 
 
 class Player:
-    def __init__(self, config: Dict[str, Any] = {}, language: Literal["zh", "en"] = "en", verbose: bool = False):
+    def __init__(self, config: Dict[str, Any] = None, language: Literal["zh", "en"] = "en", verbose: bool = False):
         self.uuid = str(uuid4().hex)
         self.config = load_config(config)
         self.language = language
         self.verbose = verbose
+
         template = partial(load_template().render, config=self.config, script=load_script())
         display(HTML(template(uuid=self.uuid, language=language.lower())))
         if self.verbose:
