@@ -17,7 +17,6 @@ classifiers = [
 dependencies = [
     "audiolab",
     "jinja2",
-    "lhotse",
     "matplotlib",
     "tgt",
 ]

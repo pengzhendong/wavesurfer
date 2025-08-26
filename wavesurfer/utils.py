@@ -21,10 +21,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import HTML, display
 from jinja2 import Environment, FileSystemLoader, Template
-from lhotse.supervision import AlignmentItem
 from matplotlib.colors import Colormap
 from tgt import Interval
 from tgt.io import read_textgrid
+
+from wavesurfer.alignment import AlignmentItem
 
 template = """<table class="table table-bordered border-black">
     <tr class="table-active">

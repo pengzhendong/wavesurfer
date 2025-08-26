@@ -22,11 +22,9 @@ from uuid import uuid4
 import numpy as np
 from audiolab import encode
 from IPython.display import HTML, display
-from lhotse import Recording
-from lhotse.cut.base import Cut
-from lhotse.supervision import AlignmentItem
 from tgt import Interval
 
+from wavesurfer.alignment import AlignmentItem
 from wavesurfer.timer import Timer
 from wavesurfer.utils import load_alignments, load_config, load_script, load_template, render, table
 
@@ -108,7 +106,7 @@ class Player:
 
     def load(
         self,
-        audio: Union[str, Path, np.ndarray, Cut, Recording],
+        audio: Union[str, Path, np.ndarray],
         rate: Optional[int] = None,
         alignments: Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]] = None,
         concat: bool = False,
