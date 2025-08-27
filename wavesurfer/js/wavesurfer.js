@@ -70,7 +70,9 @@ function createPlugins(config) {
           document.querySelector(`#duration-${uuid}`).textContent = formatTime(duration)
           for (const regionParams of this.regions.map(region => ({ ...region, ...config.pluginOptions?.regions }))) {
             let region = this.regionsPlugin.addRegion(regionParams)
-            region.content.style.color = regionParams.contentColor
+            if (region.content !== undefined) {
+              region.content.style.color = regionParams.contentColor
+            }
             Object.assign(region.element.style, {
               border: regionParams.border,
               height: regionParams.height,
