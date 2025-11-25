@@ -82,7 +82,8 @@ from audiolab import load_audio
 from wavesurfer import play
 
 def audio_generator():
-    for frame, rate in load_audio("assets/test_16k.wav", frame_size_ms=300):
+    frame_size = int(0.3 * 16000)
+    for frame, _ in load_audio("assets/test_16k.wav", frame_size=frame_size):
         time.sleep(0.1)  # RTF: 0.1 / 0.3 < 1
         yield frame
 
