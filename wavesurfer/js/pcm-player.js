@@ -50,10 +50,17 @@ function getWavBytes(buffer, options) {
   return wavBytes
 }
 
+function appendTypedArrays(first, second) {
+  const result = new first.constructor(first.length + second.length)
+  result.set(first)
+  result.set(second, first.length)
+  return result
+}
+
 (function() {
   if (typeof PCMPlayer === 'undefined') {
     class PCMPlayer {
-      constructor(uuid, option) {
+      constructor(uuid, options) {
         this.uuid = uuid
         this.isDone = false  // 是否传输完毕
         this.isPlaying = true
@@ -62,12 +69,12 @@ function getWavBytes(buffer, options) {
           this.isPlaying ? this.pause() : this.play()
         }
 
-        this.option = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, option)
+        this.options = Object.assign({}, {channels: 1, sampleRate: 16000, flushTime: 100}, options)
         // 每隔 flushTime 毫秒调用一次 flush 函数
-        this.interval = setInterval(this.flush.bind(this), this.option.flushTime)
+        this.interval = setInterval(this.flush.bind(this), this.options.flushTime)
         this.samples = new Int16Array()
-        this.all_samples = new Int16Array()
-        this.url
+        this.allSamples = new Int16Array()
+        this.url = null
 
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)()
         this.gainNode = this.audioCtx.createGain()
@@ -77,7 +84,7 @@ function getWavBytes(buffer, options) {
       }
 
       set sampleRate(rate) {
-        this.option.sampleRate = rate
+        this.options.sampleRate = rate
       }
 
       setDone() {
@@ -92,28 +99,29 @@ function getWavBytes(buffer, options) {
           bufferView[i] = binaryString.charCodeAt(i)
         }
         const data = new Int16Array(buffer)
-        this.samples = new Int16Array([...this.samples, ...data])
-        this.all_samples = new Int16Array([...this.all_samples, ...data])
+        this.samples = appendTypedArrays(this.samples, data)
+        this.allSamples = appendTypedArrays(this.allSamples, data)
 
-        const wavBytes = getWavBytes(this.all_samples.buffer, {
+        const wavBytes = getWavBytes(this.allSamples.buffer, {
           isFloat: false,
-          numChannels: this.option.channels,
-          sampleRate: this.option.sampleRate,
+          numChannels: this.options.channels,
+          sampleRate: this.options.sampleRate,
         })
+        if (this.url) URL.revokeObjectURL(this.url)
         this.url = URL.createObjectURL(new Blob([wavBytes], { type: 'audio/wav' }))
       }
 
       flush() {
         if (!this.samples.length) return
         var bufferSource = this.audioCtx.createBufferSource()
-        const length = this.samples.length / this.option.channels
-        const audioBuffer = this.audioCtx.createBuffer(this.option.channels, length, this.option.sampleRate)
-        for (let channel = 0; channel < this.option.channels; channel++) {
+        const length = this.samples.length / this.options.channels
+        const audioBuffer = this.audioCtx.createBuffer(this.options.channels, length, this.options.sampleRate)
+        for (let channel = 0; channel < this.options.channels; channel++) {
           const audioData = audioBuffer.getChannelData(channel)
           let offset = channel
           for (let i = 0; i < length; i++) {
             audioData[i] = this.samples[offset] / 32768
-            offset += this.option.channels
+            offset += this.options.channels
           }
         }
 
@@ -149,8 +157,11 @@ function getWavBytes(buffer, options) {
       reset() {
         this.samples = new Int16Array(0)
         this.allSamples = new Int16Array(0)
+        if (this.url) URL.revokeObjectURL(this.url)
+        this.url = null
         this.playButton.disabled = false
         this.isDone = false
+        this.startTime = this.audioCtx.currentTime
         this.play()
       }
 
@@ -159,6 +170,8 @@ function getWavBytes(buffer, options) {
           clearInterval(this.interval)
         }
         this.samples = null
+        this.allSamples = null
+        if (this.url) URL.revokeObjectURL(this.url)
         this.audioCtx.close()
         this.audioCtx = null
       }

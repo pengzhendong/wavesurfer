@@ -1,6 +1,6 @@
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60)
-  const secondsRemainder = Math.round(seconds) % 60
+  const secondsRemainder = Math.floor(seconds) % 60
   const paddedSeconds = `0${secondsRemainder}`.slice(-2)
   return `${minutes}:${paddedSeconds}`
 }
@@ -31,6 +31,9 @@ function createPlugins(config) {
         /** When the audio is both decoded and can play */
         this.isReady = false
         this.readyPromise = Promise.resolve()
+        this.resolveReady = null
+        this.rejectReady = null
+        this.audioUrl = null
         this.isStreaming = false
         this.pcmPlayer = new PCMPlayer(uuid)
         this.wavesurfer = WaveSurfer.create({
@@ -45,12 +48,18 @@ function createPlugins(config) {
           })
           this.wavesurfer.on('error', (err) => reject(err))
         })
-        this.readyPromise = new Promise((resolve, reject) => {
-          this.wavesurfer.on('ready', () => {
-            this.isReady = true
-            resolve()
-          })
-          this.wavesurfer.on('error', (err) => reject(err))
+        this.wavesurfer.on('ready', () => {
+          this.isReady = true
+          const resolve = this.resolveReady
+          this.resolveReady = null
+          this.rejectReady = null
+          if (resolve) resolve()
+        })
+        this.wavesurfer.on('error', (err) => {
+          const reject = this.rejectReady
+          this.resolveReady = null
+          this.rejectReady = null
+          if (reject) reject(err)
         })
         this.wavesurfer.on('timeupdate', (currentTime) => document.querySelector(`#time-${uuid}`).textContent = formatTime(currentTime))
 
@@ -92,7 +101,7 @@ function createPlugins(config) {
         if (this.isStreaming) {
           return this.pcmPlayer.url
         }
-        return createObjectURL(this.wavesurfer.getDecodedData())
+        return this.audioUrl
       }
 
       set sampleRate(rate) {
@@ -104,6 +113,7 @@ function createPlugins(config) {
 
       reset(isStreaming) {
         this.isStreaming = isStreaming
+        this.regionsPlugin.clearRegions()
         if (isStreaming) {
           this.pcmPlayer.reset()
           this.pcmPlayer.playButton.hidden = false
@@ -119,10 +129,17 @@ function createPlugins(config) {
         if (this.isStreaming) {
           this.pcmPlayer.feed(url)
           url = this.url
+        } else {
+          this.audioUrl = url
         }
         if (!this.isInitialized) {
           await this.initPromise
         }
+        this.isReady = false
+        this.readyPromise = new Promise((resolve, reject) => {
+          this.resolveReady = resolve
+          this.rejectReady = reject
+        })
         this.wavesurfer.load(url)
       }
 

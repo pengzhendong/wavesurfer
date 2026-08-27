@@ -42,7 +42,7 @@
         <img class="img-fluid me-3" src="https://img.shields.io/github/stars/pengzhendong/wavesurfer.svg">
     </a>
     <button class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" data-bs-target="#dropdownMenu-{{ uuid }}" aria-expanded="false">
-        <i class="fa {{ "fa-thumbs-o-up" if lang == "zh" else "fa-coffee"}}"></i> {{ "赞赏" if lang == "zh" else "Buy me a coffee"}}
+        <i class="fa {{ "fa-thumbs-o-up" if language == "zh" else "fa-coffee"}}"></i> {{ "赞赏" if language == "zh" else "Buy me a coffee"}}
     </button>
     <ul id="dropdownMenu-{{ uuid }}" class="dropdown-menu p-2" style="width: 280px;">
         <table class="table table-bordered mb-0">
@@ -65,12 +65,14 @@
 </div>
 
 <script>
-    if (typeof window.scriptLoaded === 'undefined') {
-        {{ script }}
-        window.scriptLoaded = true
+    if (typeof window.wavesurferScriptLoaded === 'undefined') {
+        {{ script | safe }}
+        window.wavesurferScriptLoaded = true
     }
-    player_{{ uuid }} = new Player('{{ uuid }}', {{ config | tojson | safe }})
-    downloadButton_{{ uuid }} = document.getElementById('downloadButton-{{ uuid }}')
+    window.wavesurferPlayers = window.wavesurferPlayers || {}
+    window.wavesurferPlayers['{{ uuid }}'] = new Player('{{ uuid }}', {{ config | tojson | safe }})
+    const player_{{ uuid }} = window.wavesurferPlayers['{{ uuid }}']
+    const downloadButton_{{ uuid }} = document.getElementById('downloadButton-{{ uuid }}')
     downloadButton_{{ uuid }}.addEventListener('click', function() {
         const link = document.createElement('a')
         link.href = player_{{ uuid }}.url

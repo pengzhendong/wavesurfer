@@ -14,69 +14,73 @@
 
 import logging
 import time
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 
 
 class Timer:
-    def __init__(self, name=None, auto_start=True, language="en", verbose=False):
+    """A small monotonic timer usable directly or as a context manager."""
+
+    def __init__(
+        self,
+        name: str | None = None,
+        auto_start: bool = True,
+        language: Literal["en", "zh"] = "en",
+        verbose: bool = False,
+    ) -> None:
+        if language not in ("en", "zh"):
+            raise ValueError("language must be either 'zh' or 'en'")
         self.name = name
         self.language = language
         self.verbose = verbose
-        self.start_time = None
-        self.end_time = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
         self.cost_label = "Cost time" if self.language == "en" else "耗时"
         self.unit = "s" if self.language == "en" else "秒"
         self.error_label = "Timer not started" if self.language == "en" else "计时器尚未开始"
         if auto_start:
             self.start()
 
-    def __enter__(self):
-        self.start_time = time.perf_counter()
+    def __enter__(self) -> "Timer":
+        self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Stop the timer and log the elapsed time. This method is called when exiting the context manager.
-        If an exception occurs, it will be logged.
-        """
-        self.end_time = time.perf_counter()
-        elapsed = self.end_time - self.start_time
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        elapsed = self.stop()
         if self.name:
             logger.info("[%s] %s: %.6f %s", self.name, self.cost_label, elapsed, self.unit)
         else:
             logger.info("%s: %.6f %s", self.cost_label, elapsed, self.unit)
 
-    def __str__(self):
-        """
-        Return a string representation of the timer, including the name, cost label, elapsed time, and unit.
-        If the timer has not been started, it raises an error.
-        """
+    def __str__(self) -> str:
         return (
             f"[{self.name}] {self.cost_label}: {self.elapsed():.6f} {self.unit}"
             if self.name
             else f"{self.cost_label}: {self.elapsed():.6f} {self.unit}"
         )
 
-    def start(self):
-        """
-        Start the timer. This method initializes the start time and resets the end time.
-        """
+    def start(self) -> None:
         self.start_time = time.perf_counter()
         self.end_time = None
 
-    def elapsed(self):
-        """
-        Calculate the elapsed time since the timer was started. If the timer has not been started, it raises an error.
+    def stop(self) -> float:
+        """Stop the timer and return its elapsed seconds."""
 
-        Returns:
-            float: The elapsed time in seconds.
-        """
         if self.start_time is None:
             raise RuntimeError(self.error_label)
-        end_time = self.end_time or time.perf_counter()
-        elapsed = end_time - self.start_time
+        if self.end_time is None:
+            self.end_time = time.perf_counter()
+        return self.end_time - self.start_time
 
+    def elapsed(self) -> float:
+        """Return elapsed seconds without stopping the timer."""
+
+        if self.start_time is None:
+            raise RuntimeError(self.error_label)
+        end_time = self.end_time if self.end_time is not None else time.perf_counter()
+        elapsed = end_time - self.start_time
         if self.verbose:
-            logger.info(str(self))
+            prefix = f"[{self.name}] " if self.name else ""
+            logger.info("%s%s: %.6f %s", prefix, self.cost_label, elapsed, self.unit)
         return elapsed

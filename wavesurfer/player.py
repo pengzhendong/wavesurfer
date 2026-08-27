@@ -12,138 +12,201 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Notebook audio player and streaming orchestration."""
+
+from __future__ import annotations
+
 import asyncio
-from functools import partial
-from inspect import isasyncgen, isgenerator
+import json
+from collections.abc import AsyncIterator, Iterator, Mapping
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, TypeAlias
 from uuid import uuid4
 
 import numpy as np
 from audiolab import encode
 from IPython.display import HTML, display
-from tgt import Interval
 
-from wavesurfer.alignment import AlignmentItem
+from wavesurfer.alignment import AlignmentSource, load_regions
 from wavesurfer.timer import Timer
-from wavesurfer.utils import load_alignments, load_config, load_script, load_template, render, table
+from wavesurfer.utils import load_player_config, load_script, load_template, render, render_metrics_table
+
+AudioChunk: TypeAlias = np.ndarray | tuple[np.ndarray, int]
+StaticAudio: TypeAlias = str | Path | np.ndarray
+AudioSource: TypeAlias = StaticAudio | Iterator[AudioChunk] | AsyncIterator[AudioChunk]
 
 
 class Player:
-    def __init__(self, config: Dict[str, Any] = None, language: Literal["zh", "en"] = "en", verbose: bool = False):
-        self.uuid = str(uuid4().hex)
-        self.config = load_config(config)
+    """Render and control one WaveSurfer player in a Jupyter notebook."""
+
+    def __init__(
+        self,
+        config: Mapping[str, Any] | None = None,
+        language: Literal["zh", "en"] = "en",
+        verbose: bool = False,
+    ) -> None:
+        if language not in ("zh", "en"):
+            raise ValueError("language must be either 'zh' or 'en'")
+
+        self.id = uuid4().hex
+        self.uuid = self.id  # Backwards-compatible attribute name.
+        self.config = load_player_config(config)
         self.language = language
         self.verbose = verbose
+        self._stream_duration = 0.0
+        self._stream_task: asyncio.Task[None] | None = None
+        self._metrics: dict[str, tuple[str, object]] = {
+            "latency": ("Latency", "0ms"),
+            "rtf": ("Real-Time Factor", "0.00"),
+        }
 
-        template = partial(load_template().render, config=self.config, script=load_script())
-        display(HTML(template(uuid=self.uuid, language=language.lower())))
+        html = load_template().render(config=self.config, script=load_script(), uuid=self.id, language=language)
+        display(HTML(html))
+        self._metrics_display = None
+        if verbose:
+            self._metrics_display = display(HTML(render_metrics_table(self._metrics)), display_id=True)
+
+    @property
+    def _js_reference(self) -> str:
+        return f"window.wavesurferPlayers[{json.dumps(self.id)}]"
+
+    def _call(self, method: str, *arguments: object) -> None:
+        serialized = ", ".join(
+            json.dumps(argument, ensure_ascii=False, separators=(",", ":")) for argument in arguments
+        )
+        render(f"{self._js_reference}.{method}({serialized})")
+
+    def reset(self, streaming: bool = False) -> None:
+        """Clear the current audio and prepare for static or streamed input."""
+
+        self._stream_duration = 0.0
+        self._call("reset", streaming)
+
+    def set_sample_rate(self, sample_rate: int) -> None:
+        """Set the playback sample rate."""
+
+        if sample_rate <= 0:
+            raise ValueError("sample_rate must be greater than zero")
+        render(f"{self._js_reference}.sampleRate = {json.dumps(sample_rate)}")
+
+    # Retain the short method used by earlier releases.
+    set_rate = set_sample_rate
+
+    def set_done(self) -> None:
+        """Tell the browser that no more stream chunks are expected."""
+
+        self._call("setDone")
+
+    def play(self) -> None:
+        self._call("play")
+
+    def pause(self) -> None:
+        self._call("pause")
+
+    def feed(self, index: int, chunk: np.ndarray, sample_rate: int, timer: Timer) -> None:
+        """Encode and send one PCM chunk to the browser."""
+
+        samples = np.asarray(chunk)
+        if samples.ndim == 0:
+            raise ValueError("audio chunks must have at least one dimension")
+        self.set_sample_rate(sample_rate)
+
         if self.verbose:
-            self.duration = 0
-            self.performance = {
-                "latency": ["Latency", "0ms"],
-                "rtf": ["Real-Time Factor", "0.00"],
-            }
-            self.display_id = display(HTML(table(self.performance)), display_id=True)
+            if index == 0:
+                self._metrics["latency"] = ("Latency", f"{int(timer.elapsed() * 1000)}ms")
+            self._stream_duration += samples.shape[-1] / sample_rate
+            real_time_factor = timer.elapsed() / self._stream_duration if self._stream_duration else 0.0
+            self._metrics["rtf"] = ("Real-Time Factor", f"{real_time_factor:.2f}")
+            if self._metrics_display is not None:
+                self._metrics_display.update(HTML(render_metrics_table(self._metrics)))
 
-    def reset(self, is_streaming: bool = False):
-        """
-        Reset the player to its initial state. This method clears the current audio and resets the player.
-
-        Args:
-            is_streaming (bool): If True, the player is reset for streaming audio; otherwise, it is reset for non-streaming audio.
-        """
-        render(f"player_{self.uuid}.reset({'true' if is_streaming else 'false'})")
-
-    def set_rate(self, rate: int = 16000):
-        """
-        Set the sample rate for the player.
-
-        Args:
-            rate (int): The sample rate to be set for the player.
-        """
-        render(f"player_{self.uuid}.sampleRate = {rate}")
-
-    def set_done(self):
-        """
-        Mark the player as done. This method is typically called when the audio playback is complete.
-        """
-        render(f"player_{self.uuid}.setDone()")
-
-    def play(self):
-        """
-        Start playback of the audio loaded in the player. This method triggers the audio playback process.
-        """
-        render(f"player_{self.uuid}.play()")
-
-    def pause(self):
-        """
-        Pause the audio playback. This method stops the audio playback temporarily.
-        """
-        render(f"player_{self.uuid}.pause()")
-
-    def feed(self, idx: int, chunk: np.ndarray, rate: int, timer: Timer):
-        """
-        Feed a chunk of audio data to the player. This method processes the audio chunk and updates the player state.
-
-        Args:
-            idx (int): The index of the audio chunk.
-            chunk (np.ndarray): The audio data chunk to be fed to the player.
-            rate (int): The sample rate of the audio data.
-            timer (Timer): A Timer instance to measure the performance of the audio processing.
-        """
-        if self.verbose:
-            if idx == 0:
-                self.performance["latency"][1] = f"{int(timer.elapsed() * 1000)}ms"
-            self.duration += chunk.shape[1] / rate
-            if self.duration > 0:
-                self.performance["rtf"][1] = round(timer.elapsed() / self.duration, 2)
-            self.display_id.update(HTML(table(self.performance)))
-        base64_pcm, _ = encode(chunk, make_wav=False, to_mono=True)
-        if rate is not None:
-            self.set_rate(rate)
-        render(f"player_{self.uuid}.load('{base64_pcm}')")
+        encoded_chunk, _ = encode(
+            samples,
+            sample_rate=sample_rate,
+            to_mono=True,
+            include_container=False,
+        )
+        self._call("load", encoded_chunk)
 
     def load(
         self,
-        audio: Union[str, Path, np.ndarray],
-        rate: Optional[int] = None,
-        alignments: Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]] = None,
-        concat: bool = False,
-        merge: bool = False,
-    ):
+        audio: AudioSource,
+        sample_rate: int | None = None,
+        alignments: AlignmentSource | None = None,
+        *,
+        concatenate_overlaps: bool = False,
+        merge_matching: bool = False,
+    ) -> asyncio.Task[None] | None:
+        """Load static audio or start consuming an audio stream.
+
+        For asynchronous streams, the returned task can be awaited by callers
+        that need to know when ingestion has completed. Static and synchronous
+        inputs are fully handled before this method returns.
         """
-        Render audio data and return the rendered result.
 
-        Args:
-            audio (Union[str, Path, np.ndarray, Cut, Recording]): Audio data to be rendered.
-            rate (Optional[int]): Sample rate of the audio data.
-            alignments (Optional[Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]]): Path to the text grid file, or a list of alignments to be rendered.
-            concat (bool): Whether to concat overlapping alignments.
-            merge (bool): Whether to merge overlapping alignments.
-        """
-        timer = Timer(language=self.language)
-        if isasyncgen(audio) or isgenerator(audio):
-            self.reset(is_streaming=True)
-            if isasyncgen(audio):
+        if isinstance(audio, AsyncIterator):
+            self.reset(streaming=True)
+            loop = asyncio.get_running_loop()
+            self._stream_task = loop.create_task(self._consume_async_stream(audio, sample_rate))
+            return self._stream_task
 
-                async def process_async_gen():
-                    async for idx, chunk in enumerate(audio):
-                        if isinstance(chunk, tuple):
-                            chunk, rate = chunk
-                        self.feed(idx, chunk, rate, timer)
-                    self.set_done()
+        if isinstance(audio, Iterator):
+            self.reset(streaming=True)
+            self._consume_stream(audio, sample_rate)
+            return None
 
-                asyncio.create_task(process_async_gen())
-            else:
-                for idx, chunk in enumerate(audio):
-                    if isinstance(chunk, tuple):
-                        chunk, rate = chunk
-                    self.feed(idx, chunk, rate, timer)
-                self.set_done()
+        self.reset(streaming=False)
+        encoded_audio, detected_rate = encode(audio, sample_rate=sample_rate, to_mono=True)
+        self.set_sample_rate(detected_rate)
+        regions = (
+            []
+            if alignments is None
+            else load_regions(
+                alignments,
+                concatenate_overlaps=concatenate_overlaps,
+                merge_matching=merge_matching,
+            )
+        )
+        self._call("load", encoded_audio, regions)
+        return None
+
+    def _consume_stream(self, stream: Iterator[AudioChunk], sample_rate: int | None) -> None:
+        timer = Timer()
+        current_rate = sample_rate
+        try:
+            for index, item in enumerate(stream):
+                chunk, current_rate = self._unpack_chunk(item, current_rate)
+                self.feed(index, chunk, current_rate, timer)
+        finally:
+            self.set_done()
+
+    async def _consume_async_stream(
+        self,
+        stream: AsyncIterator[AudioChunk],
+        sample_rate: int | None,
+    ) -> None:
+        timer = Timer()
+        current_rate = sample_rate
+        index = 0
+        try:
+            async for item in stream:
+                chunk, current_rate = self._unpack_chunk(item, current_rate)
+                self.feed(index, chunk, current_rate, timer)
+                index += 1
+        finally:
+            self.set_done()
+
+    @staticmethod
+    def _unpack_chunk(item: AudioChunk, sample_rate: int | None) -> tuple[np.ndarray, int]:
+        if isinstance(item, tuple):
+            if len(item) != 2:
+                raise ValueError("stream tuples must contain (audio_chunk, sample_rate)")
+            chunk, sample_rate = item
         else:
-            self.reset(is_streaming=False)
-            audio, rate = encode(audio, rate, to_mono=True)
-            self.set_rate(rate)
-            regions = [] if alignments is None else load_alignments(alignments, concat, merge)
-            render(f"player_{self.uuid}.load('{audio}', {regions})")
+            chunk = item
+        if sample_rate is None:
+            raise ValueError("sample_rate is required unless each stream chunk includes it")
+        return np.asarray(chunk), sample_rate
+
+
+__all__ = ["AudioChunk", "AudioSource", "Player", "StaticAudio"]

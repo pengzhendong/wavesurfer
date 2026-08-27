@@ -1,9 +1,26 @@
-wget https://unpkg.com/bootstrap/dist/js/bootstrap.bundle.min.js -O wavesurfer/js/bootstrap.bundle.min.js
-wget https://unpkg.com/wavesurfer.js/dist/wavesurfer.min.js -O wavesurfer/js/wavesurfer.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/hover.min.js -O wavesurfer/js/plugins/hover.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/minimap.min.js -O wavesurfer/js/plugins/minimap.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/regions.min.js -O wavesurfer/js/plugins/regions.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/spectrogram.min.js -O wavesurfer/js/plugins/spectrogram.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/spectrogram-windowed.min.js -O wavesurfer/js/plugins/spectrogram-windowed.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/timeline.min.js -O wavesurfer/js/plugins/timeline.min.js
-wget https://unpkg.com/wavesurfer.js/dist/plugins/zoom.min.js -O wavesurfer/js/plugins/zoom.min.js
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly WAVESURFER_VERSION="7.12.11"
+readonly BOOTSTRAP_VERSION="5.3.8"
+readonly JS_DIRECTORY="wavesurfer/js"
+
+download() {
+    curl --fail --location --silent --show-error "$1" --output "$2"
+}
+
+mkdir -p "${JS_DIRECTORY}/plugins"
+
+download \
+    "https://unpkg.com/bootstrap@${BOOTSTRAP_VERSION}/dist/js/bootstrap.bundle.min.js" \
+    "${JS_DIRECTORY}/bootstrap.bundle.min.js"
+download \
+    "https://unpkg.com/wavesurfer.js@${WAVESURFER_VERSION}/dist/wavesurfer.min.js" \
+    "${JS_DIRECTORY}/wavesurfer.min.js"
+
+for plugin in hover minimap regions spectrogram spectrogram-windowed timeline zoom; do
+    download \
+        "https://unpkg.com/wavesurfer.js@${WAVESURFER_VERSION}/dist/plugins/${plugin}.min.js" \
+        "${JS_DIRECTORY}/plugins/${plugin}.min.js"
+done

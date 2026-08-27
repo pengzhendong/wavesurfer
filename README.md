@@ -41,7 +41,7 @@ from audiolab import load_audio
 from wavesurfer import play
 
 audio, rate = load_audio("assets/test_16k.wav")
-play(audio, rate)
+player = play(audio, sample_rate=rate)
 ```
 
 ### Displaying Alignments
@@ -52,7 +52,11 @@ Display alignment information on the waveform:
 from wavesurfer import play
 
 # Play with alignment information from a TextGrid file
-play("assets/test_16k.wav", alignments="assets/test_16k.TextGrid", config={"options": {"normalize": True}})
+player = play(
+    "assets/test_16k.wav",
+    alignments="assets/test_16k.TextGrid",
+    config={"options": {"normalize": True}},
+)
 ```
 
 ![](assets/test_16k_regions.png)
@@ -69,7 +73,7 @@ alignments = [
 ]
 
 # Play with alignment information
-play("assets/test_16k.wav", alignments=alignments)
+player = play("assets/test_16k.wav", alignments=alignments)
 ```
 
 ### Streaming Playback
@@ -87,8 +91,13 @@ def audio_generator():
         time.sleep(0.1)  # RTF: 0.1 / 0.3 < 1
         yield frame
 
-play(audio_generator(), 16000)
+player = play(audio_generator(), sample_rate=16000)
 ```
+
+Streams may also yield `(chunk, sample_rate)` pairs, which is useful when the
+rate is discovered while producing the audio. Async generators are supported;
+`Player.load()` returns an `asyncio.Task` that can be awaited when completion
+matters.
 
 ### Programmatic Control
 
@@ -109,6 +118,34 @@ player.pause()  # Pause playback
 ```
 
 The `Player` class also supports all the audio formats that the `play` function supports, including file paths, waveform data, and streaming generators.
+
+`play()` returns the `Player`, so the shorter API can also be used with
+programmatic controls. File inputs detect their sample rate automatically;
+NumPy arrays require `sample_rate`.
+
+### Alignment Models
+
+Dictionary alignments accept either `start`/`end`/`content` or
+`start`/`duration`/`symbol`. You can also use the explicit `Region` model:
+
+```python
+from wavesurfer import Region, play
+
+regions = [Region(start=0.0, end=0.5, content="hello")]
+play("assets/test_16k.wav", alignments=regions)
+```
+
+Overlapping regions can be combined with `concatenate_overlaps=True`, or
+matching labels can be merged with `merge_matching=True`.
+
+## Development
+
+Install the test dependencies and run the suite with:
+
+```bash
+pip install -e ".[test]"
+pytest
+```
 
 ## License
 

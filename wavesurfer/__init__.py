@@ -12,37 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from __future__ import annotations
 
-import numpy as np
-from tgt import Interval
+from collections.abc import Mapping
+from typing import Any, Literal
 
-from wavesurfer.alignment import AlignmentItem
-from wavesurfer.player import Player
+from wavesurfer.alignment import AlignmentItem, AlignmentSource, Region
+from wavesurfer.player import AudioSource, Player
 from wavesurfer.utils import render
 
 
 def play(
-    audio: Union[str, Path, np.ndarray],
-    rate: int = 16000,
-    alignments: Optional[Union[str, Path, List[AlignmentItem], List[Interval]]] = None,
-    config: Dict[str, Any] = None,
+    audio: AudioSource,
+    sample_rate: int | None = None,
+    alignments: AlignmentSource | None = None,
+    config: Mapping[str, Any] | None = None,
     language: Literal["zh", "en"] = "en",
     verbose: bool = False,
-):
-    """
-    Render audio data and play it.
+    *,
+    concatenate_overlaps: bool = False,
+    merge_matching: bool = False,
+) -> Player:
+    """Render audio in a notebook and return its controllable player.
 
     Args:
-        audio (Union[str, Path, np.ndarray]): Audio data to be rendered.
-        rate (int): Sample rate of the audio data.
-        alignments (Optional[Union[str, Path, List[AlignmentItem], List[Interval]]]): Path to the text grid file, or a list of alignments to be rendered.
-        config (Dict[str, Any]): Configuration options for the player.
-        language (Literal["zh", "en"]): Language of the UI.
-        verbose (bool): Whether to display performance metrics.
+        audio: A file path, NumPy array, or synchronous/asynchronous stream.
+        sample_rate: Required for arrays and streams unless the stream yields
+            ``(chunk, sample_rate)`` pairs. File inputs detect it automatically.
+        alignments: TextGrid path or iterable of alignment values.
+        config: Player configuration overrides.
+        language: Language of the UI.
+        verbose: Whether to display streaming performance metrics.
+        concatenate_overlaps: Join labels of overlapping alignment regions.
+        merge_matching: Merge overlapping regions when their labels match.
     """
-    Player(config, language, verbose).load(audio, rate, alignments)
+
+    player = Player(config=config, language=language, verbose=verbose)
+    player.load(
+        audio,
+        sample_rate=sample_rate,
+        alignments=alignments,
+        concatenate_overlaps=concatenate_overlaps,
+        merge_matching=merge_matching,
+    )
+    return player
 
 
-__all__ = ["Player", "play", "render"]
+__all__ = ["AlignmentItem", "Player", "Region", "play", "render"]

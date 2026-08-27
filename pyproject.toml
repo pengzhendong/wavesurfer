@@ -1,24 +1,33 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "wavesurfer"
 authors = [{ name = "Zhendong Peng", email = "pzd17@tsinghua.org.cn" }]
-description = "TorchAudio Forced Aligner"
+description = "Audio visualization and streaming playback for Jupyter notebooks"
 readme = "README.md"
-license = {file = "LICENSE"}
-requires-python = ">=3.8"
+license = "BSD-2-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "audiolab",
+    "audiolab>=0.5.2",
+    "ipython",
     "jinja2",
     "matplotlib",
+    "numpy",
     "tgt",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-cov>=5",
 ]
 
 [project.urls]
@@ -30,7 +39,7 @@ BugTracker = "https://github.com/pengzhendong/wavesurfer/issues"
 version = { file = "VERSION" }
 
 [tool.setuptools.packages.find]
-exclude = ["assets", "assets.*"]
+include = ["wavesurfer", "wavesurfer.*"]
 
 [tool.setuptools.package-data]
 wavesurfer = [
@@ -38,3 +47,7 @@ wavesurfer = [
     "js/**/*.js",
     "templates/*.txt",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+testpaths = ["tests"]

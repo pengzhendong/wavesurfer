@@ -12,184 +12,139 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Configuration, resource loading, and notebook rendering helpers."""
+
+from __future__ import annotations
+
 import json
+from copy import deepcopy
+from functools import lru_cache
 from importlib.resources import files
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Mapping
 
-import matplotlib.pyplot as plt
-import numpy as np
 from IPython.display import HTML, display
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, Template, select_autoescape
 from matplotlib.colors import Colormap
-from tgt import Interval
-from tgt.io import read_textgrid
 
-from wavesurfer.alignment import AlignmentItem
+from wavesurfer.alignment import AlignmentSource, load_regions
 
-template = """<table class="table table-bordered border-black">
+_METRICS_TEMPLATE = """<table class="table table-bordered border-black">
     <tr class="table-active">
-        {%- for key in dict.keys() %}
-        <th>{{ dict[key][0] }}</th>
+        {%- for label, value in metrics.values() %}
+        <th>{{ label }}</th>
         {%- endfor %}
     </tr>
     <tr>
-        {%- for key in dict.keys() %}
-        <td>{{ dict[key][1] }}</td>
+        {%- for label, value in metrics.values() %}
+        <td>{{ value }}</td>
         {%- endfor %}
     </tr>
 </table>"""
 
 
-def merge_dicts(d1, d2):
-    for k in d2:
-        if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], dict):
-            merge_dicts(d1[k], d2[k])
-        elif k in d1 and isinstance(d1[k], list) and isinstance(d2[k], list):
-            d1[k] = d1[k] + d2[k]
+def deep_merge(base: Mapping[str, Any], overrides: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Return a recursively merged copy without mutating either input.
+
+    Nested mappings are merged; every other value, including lists, is
+    replaced by the override. Replacing lists makes options such as the active
+    plugin set predictable and allows callers to disable defaults.
+    """
+
+    result = deepcopy(dict(base))
+    for key, value in (overrides or {}).items():
+        if isinstance(result.get(key), Mapping) and isinstance(value, Mapping):
+            result[key] = deep_merge(result[key], value)
         else:
-            d1[k] = d2[k]
-    return d1
+            result[key] = deepcopy(value)
+    return result
 
 
-def get_cmap(name: Optional[Union[Colormap, str]]) -> List[List[float]]:
-    """
-    Retrieve a colormap by name and convert it to a list of 256 RGB(A) color values.
-    Note: https://bids.github.io/colormap
+def get_colormap(name: Colormap | str | None) -> list[list[float]]:
+    """Return 256 RGBA samples for a Matplotlib colormap."""
 
-    Args:
-        name: Name of the colormap.
-    Returns:
-        List of 256 RGB(A) color values.
-    """
-    cmap = plt.get_cmap(name)
-    gradient = np.linspace(0, 1, 256)
-    return cmap(gradient).tolist()
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    colormap = plt.get_cmap(name)
+    return colormap(np.linspace(0, 1, 256)).tolist()
 
 
-def load_alignments(
-    alignments: Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]],
-    concat: bool = False,
-    merge: bool = False,
-) -> List[Dict[str, Any]]:
-    """
-    Load alignment intervals from a text grid file, or a list of alignment items.
+def load_player_config(overrides: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Load the packaged defaults and apply caller-provided overrides."""
 
-    Args:
-        alignments (Union[str, Path, List[Union[AlignmentItem, Dict[str, Any], Interval]]]): The path to the text grid file, or a list of alignment items.
-        concat (bool): Whether to concatenate overlapping alignments.
-        merge (bool): Whether to merge overlapping alignments.
-    Returns:
-        List[Dict[str, Any]]: A list of alignment regions.
-    """
-    regions = []
-    if isinstance(alignments, Path):
-        alignments = str(alignments)
-    if isinstance(alignments, str):
-        for interval in read_textgrid(alignments).tiers[0].intervals:
-            regions.append({"start": interval.start_time, "end": interval.end_time, "content": interval.text})
-    elif isinstance(alignments, List):
-        for alignment in alignments:
-            if isinstance(alignment, AlignmentItem):
-                regions.append({"start": alignment.start, "end": alignment.end, "content": alignment.symbol})
-            else:
-                regions.append(alignment)
-
-    if concat or merge:
-        merged_regions = []
-        for region in regions:
-            if len(merged_regions) == 0 or merged_regions[-1]["end"] < region["start"]:
-                merged_regions.append(region)
-            else:
-                last_region = merged_regions[-1]
-                if concat:
-                    last_region["content"] += " " + region["content"]
-                    last_region["end"] = region["end"]
-                elif merge:
-                    if last_region["content"] == region["content"]:
-                        last_region["end"] = region["end"]
-                    else:
-                        merged_regions.append(region)
-        regions = merged_regions
-
-    return regions
-
-
-def load_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
-    """
-    Load the configuration for the player from a JSON file.
-
-    Args:
-        config (dict): A dictionary of configuration options.
-    Returns:
-        Dict[str, Any]: The configuration dictionary loaded from the JSON file and merged with the provided configuration.
-    """
-    default_config = json.loads(load_file("wavesurfer.configs", "player.json"))
-    config = merge_dicts(default_config, config if config is not None else {})
-    spectrogram = config["pluginOptions"]["spectrogram"]
-    cmap = spectrogram["colorMap"]
-    if isinstance(cmap, str) and cmap != "roseus":
-        spectrogram["colorMap"] = get_cmap(cmap)
+    defaults = json.loads(load_resource("configs/player.json"))
+    config = deep_merge(defaults, overrides)
+    spectrogram = config.get("pluginOptions", {}).get("spectrogram", {})
+    color_map = spectrogram.get("colorMap")
+    if isinstance(color_map, Colormap) or (isinstance(color_map, str) and color_map != "roseus"):
+        spectrogram["colorMap"] = get_colormap(color_map)
     return config
 
 
-def load_file(package: str, filepath: str) -> str:
-    """
-    Load a file from the specified package and filepath.
+def load_resource(path: str) -> str:
+    """Read a UTF-8 text resource from the installed package."""
 
-    Args:
-        package (str): The package name from which to load the file.
-        filepath (str): The path to the file within the package.
-    Returns:
-        str: The contents of the file as a string.
-    """
-    return files(package).joinpath(filepath).read_text(encoding="utf-8")
+    return files("wavesurfer").joinpath(path).read_text(encoding="utf-8")
 
 
-def load_script():
-    """
-    Load the JavaScript files required for the player.
+@lru_cache(maxsize=1)
+def load_script() -> str:
+    """Load and concatenate the JavaScript required by the notebook player."""
 
-    Returns:
-        str: The concatenated JavaScript code as a string.
-    """
-    js = load_file("wavesurfer.js", "wavesurfer.min.js")
-    for plugin in ["hover", "minimap", "regions", "spectrogram", "spectrogram-windowed", "timeline", "zoom"]:
-        js += load_file("wavesurfer.js.plugins", f"{plugin}.min.js")
-    js += load_file("wavesurfer.js", "pcm-player.js")
-    js += load_file("wavesurfer.js", "wavesurfer.js")
-    js += load_file("wavesurfer.js", "bootstrap.bundle.min.js")
-    return js
+    paths = ["js/wavesurfer.min.js"]
+    paths.extend(
+        f"js/plugins/{plugin}.min.js"
+        for plugin in ("hover", "minimap", "regions", "spectrogram", "spectrogram-windowed", "timeline", "zoom")
+    )
+    paths.extend(("js/pcm-player.js", "js/wavesurfer.js", "js/bootstrap.bundle.min.js"))
+    return "\n".join(load_resource(path) for path in paths)
 
 
-def load_template() -> str:
-    """
-    Load the Jinja2 template for rendering the player interface.
+@lru_cache(maxsize=1)
+def load_template() -> Template:
+    """Compile the packaged notebook template."""
 
-    Returns:
-        str: The rendered template as a string.
-    """
-    loader = FileSystemLoader(files("wavesurfer").joinpath("templates"))
-    return Environment(loader=loader).get_template("wavesurfer.txt")
+    environment = Environment(autoescape=select_autoescape(default_for_string=True))
+    return environment.from_string(load_resource("templates/wavesurfer.txt"))
 
 
-def render(script: str):
-    """
-    Render a script in the Jupyter notebook. This method injects the provided script into the notebook's HTML output.
+def render(script: str) -> None:
+    """Inject a JavaScript command into the current notebook output."""
 
-    Args:
-        script (str): The script to be rendered.
-    """
     display(HTML(f"<script>{script}</script>"))
 
 
-def table(dict: dict[str, list[str, str]]) -> str:
-    """
-    Generate an HTML table from a dictionary.
+def render_metrics_table(metrics: Mapping[str, tuple[str, object]]) -> str:
+    """Render the small latency/RTF status table."""
 
-    Args:
-        dict (dict[str, list[str, str]]): A dictionary where keys are column names and values are lists containing two strings: the header and the value.
-    Returns:
-        str: The HTML table as a string.
-    """
-    return Template(template).render(dict=dict)
+    environment = Environment(autoescape=True)
+    return environment.from_string(_METRICS_TEMPLATE).render(metrics=metrics)
+
+
+# Compatibility aliases retained for users who imported the old helpers.
+merge_dicts = deep_merge
+get_cmap = get_colormap
+load_config = load_player_config
+table = render_metrics_table
+
+
+def load_alignments(
+    alignments: AlignmentSource,
+    concat: bool = False,
+    merge: bool = False,
+) -> list[dict[str, Any]]:
+    return load_regions(alignments, concatenate_overlaps=concat, merge_matching=merge)
+
+
+__all__ = [
+    "deep_merge",
+    "get_colormap",
+    "load_alignments",
+    "load_player_config",
+    "load_regions",
+    "load_resource",
+    "load_script",
+    "load_template",
+    "render",
+    "render_metrics_table",
+]
