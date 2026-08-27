@@ -10,6 +10,7 @@ A Python package for audio visualization and playback in Jupyter notebooks.
 - Visualize audio waveforms in Jupyter notebooks
 - Support for various audio formats (WAV, MP3, FLAC, etc.)
 - Streaming audio playback for real-time applications
+- Bounded, throttled waveform previews for long-running streams
 - Programmatic control with play/pause functionality
 - Performance monitoring with latency and RTF metrics
 - Display alignment information on waveforms
@@ -95,9 +96,37 @@ player = play(audio_generator(), sample_rate=16000)
 ```
 
 Streams may also yield `(chunk, sample_rate)` pairs, which is useful when the
-rate is discovered while producing the audio. Async generators are supported;
-`Player.load()` returns an `asyncio.Task` that can be awaited when completion
-matters.
+rate is discovered while producing the audio. A stream must keep the same
+sample rate throughout.
+
+Async generators can be observed, cancelled, and cleaned up explicitly:
+
+```python
+player = play(async_audio_generator(), sample_rate=16000)
+await player.wait()
+
+# Or stop ingestion early:
+player.cancel()
+player.close()
+```
+
+Streaming keeps only a bounded window for waveform previews. Full audio is
+retained for download by default but generated as a WAV only when requested.
+This behavior is configurable:
+
+```python
+player = play(
+    audio_generator(),
+    sample_rate=16000,
+    config={
+        "streaming": {
+            "previewSeconds": 20,
+            "waveformRefreshInterval": 1000,
+            "retainAudio": False,
+        }
+    },
+)
+```
 
 ### Programmatic Control
 
@@ -115,6 +144,7 @@ player.load("assets/test_16k.wav")
 # Programmatically control playback
 player.play()   # Start playback
 player.pause()  # Pause playback
+player.close()  # Release timers, audio contexts, URLs, and browser objects
 ```
 
 The `Player` class also supports all the audio formats that the `play` function supports, including file paths, waveform data, and streaming generators.
@@ -122,6 +152,13 @@ The `Player` class also supports all the audio formats that the `play` function 
 `play()` returns the `Player`, so the shorter API can also be used with
 programmatic controls. File inputs detect their sample rate automatically;
 NumPy arrays require `sample_rate`.
+
+`Player` is also a context manager when deterministic cleanup is convenient:
+
+```python
+with Player() as player:
+    player.load("assets/test_16k.wav")
+```
 
 ### Alignment Models
 
@@ -138,6 +175,12 @@ play("assets/test_16k.wav", alignments=regions)
 Overlapping regions can be combined with `concatenate_overlaps=True`, or
 matching labels can be merged with `merge_matching=True`.
 
+For TextGrid files with multiple tiers, select one by name or index:
+
+```python
+play("audio.wav", alignments="alignment.TextGrid", alignment_tier="words")
+```
+
 ## Development
 
 Install the test dependencies and run the suite with:
@@ -145,7 +188,12 @@ Install the test dependencies and run the suite with:
 ```bash
 pip install -e ".[test]"
 pytest
+node --test tests/js/*.test.js
 ```
+
+WaveSurfer.js is vendored so a fresh clone works without a network download.
+Maintainers can refresh the pinned browser assets with
+`bash scripts/update_vendor_assets.sh`.
 
 ## License
 

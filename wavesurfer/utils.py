@@ -26,17 +26,17 @@ from IPython.display import HTML, display
 from jinja2 import Environment, Template, select_autoescape
 from matplotlib.colors import Colormap
 
-from wavesurfer.alignment import AlignmentSource, load_regions
+_SUPPORTED_PLUGINS = {"hover", "minimap", "spectrogram", "timeline", "zoom"}
 
-_METRICS_TEMPLATE = """<table class="table table-bordered border-black">
-    <tr class="table-active">
+_METRICS_TEMPLATE = """<table style="border-collapse:collapse;width:100%">
+    <tr>
         {%- for label, value in metrics.values() %}
-        <th>{{ label }}</th>
+        <th style="background:#f3f4f6;border:1px solid #111;padding:4px;text-align:left">{{ label }}</th>
         {%- endfor %}
     </tr>
     <tr>
         {%- for label, value in metrics.values() %}
-        <td>{{ value }}</td>
+        <td style="border:1px solid #111;padding:4px;text-align:left">{{ value }}</td>
         {%- endfor %}
     </tr>
 </table>"""
@@ -74,11 +74,50 @@ def load_player_config(overrides: Mapping[str, Any] | None = None) -> dict[str, 
 
     defaults = json.loads(load_resource("configs/player.json"))
     config = deep_merge(defaults, overrides)
-    spectrogram = config.get("pluginOptions", {}).get("spectrogram", {})
+    plugin_options = config.get("pluginOptions")
+    if not isinstance(plugin_options, Mapping):
+        raise TypeError("config.pluginOptions must be a mapping")
+    spectrogram = plugin_options.get("spectrogram", {})
+    if not isinstance(spectrogram, Mapping):
+        raise TypeError("config.pluginOptions.spectrogram must be a mapping")
     color_map = spectrogram.get("colorMap")
     if isinstance(color_map, Colormap) or (isinstance(color_map, str) and color_map != "roseus"):
         spectrogram["colorMap"] = get_colormap(color_map)
+    _validate_player_config(config)
     return config
+
+
+def _validate_player_config(config: Mapping[str, Any]) -> None:
+    for field in ("options", "pluginOptions", "streaming"):
+        if not isinstance(config.get(field), Mapping):
+            raise TypeError(f"config.{field} must be a mapping")
+
+    plugins = config.get("plugins")
+    if not isinstance(plugins, list) or not all(isinstance(plugin, str) for plugin in plugins):
+        raise TypeError("config.plugins must be a list of plugin names")
+    unsupported = set(plugins) - _SUPPORTED_PLUGINS
+    if unsupported:
+        names = ", ".join(sorted(unsupported))
+        raise ValueError(f"unsupported plugins: {names}")
+    if len(plugins) != len(set(plugins)):
+        raise ValueError("config.plugins must not contain duplicates")
+
+    streaming = config["streaming"]
+    for field in ("channels", "sampleRate"):
+        value = streaming.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"config.streaming.{field} must be a positive integer")
+    for field in ("flushTime", "previewSeconds", "waveformRefreshInterval"):
+        value = streaming.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError(f"config.streaming.{field} must be greater than zero")
+    if not isinstance(streaming.get("retainAudio"), bool):
+        raise TypeError("config.streaming.retainAudio must be a boolean")
+
+    try:
+        json.dumps(config)
+    except (TypeError, ValueError) as error:
+        raise TypeError(f"player config must be JSON serializable: {error}") from error
 
 
 def load_resource(path: str) -> str:
@@ -96,7 +135,7 @@ def load_script() -> str:
         f"js/plugins/{plugin}.min.js"
         for plugin in ("hover", "minimap", "regions", "spectrogram", "spectrogram-windowed", "timeline", "zoom")
     )
-    paths.extend(("js/pcm-player.js", "js/wavesurfer.js", "js/bootstrap.bundle.min.js"))
+    paths.extend(("js/pcm-player.js", "js/wavesurfer.js"))
     return "\n".join(load_resource(path) for path in paths)
 
 
@@ -121,27 +160,10 @@ def render_metrics_table(metrics: Mapping[str, tuple[str, object]]) -> str:
     return environment.from_string(_METRICS_TEMPLATE).render(metrics=metrics)
 
 
-# Compatibility aliases retained for users who imported the old helpers.
-merge_dicts = deep_merge
-get_cmap = get_colormap
-load_config = load_player_config
-table = render_metrics_table
-
-
-def load_alignments(
-    alignments: AlignmentSource,
-    concat: bool = False,
-    merge: bool = False,
-) -> list[dict[str, Any]]:
-    return load_regions(alignments, concatenate_overlaps=concat, merge_matching=merge)
-
-
 __all__ = [
     "deep_merge",
     "get_colormap",
-    "load_alignments",
     "load_player_config",
-    "load_regions",
     "load_resource",
     "load_script",
     "load_template",

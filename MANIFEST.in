@@ -1,0 +1,6 @@
+include LICENSE README.md THIRD_PARTY_NOTICES.md VERSION
+recursive-include scripts *.sh
+recursive-include tests *.js *.py
+recursive-include wavesurfer/configs *.json
+recursive-include wavesurfer/js *.js *.LICENSE
+recursive-include wavesurfer/templates *.txt

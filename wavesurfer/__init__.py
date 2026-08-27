@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from wavesurfer.alignment import AlignmentItem, AlignmentSource, Region
+from wavesurfer.alignment import AlignmentItem, AlignmentSource, Region, TierSelector
 from wavesurfer.player import AudioSource, Player
 from wavesurfer.utils import render
 
@@ -30,6 +30,7 @@ def play(
     language: Literal["zh", "en"] = "en",
     verbose: bool = False,
     *,
+    alignment_tier: TierSelector = 0,
     concatenate_overlaps: bool = False,
     merge_matching: bool = False,
 ) -> Player:
@@ -43,6 +44,7 @@ def play(
         config: Player configuration overrides.
         language: Language of the UI.
         verbose: Whether to display streaming performance metrics.
+        alignment_tier: TextGrid tier name or index to display.
         concatenate_overlaps: Join labels of overlapping alignment regions.
         merge_matching: Merge overlapping regions when their labels match.
     """
@@ -52,6 +54,7 @@ def play(
         audio,
         sample_rate=sample_rate,
         alignments=alignments,
+        alignment_tier=alignment_tier,
         concatenate_overlaps=concatenate_overlaps,
         merge_matching=merge_matching,
     )

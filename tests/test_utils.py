@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pytest
 from matplotlib import colormaps
 
-from wavesurfer.utils import deep_merge, load_player_config, render_metrics_table
+from wavesurfer.utils import deep_merge, load_player_config, load_script, render_metrics_table
 
 
 def test_deep_merge_is_non_mutating_and_replaces_lists() -> None:
@@ -39,3 +40,29 @@ def test_metrics_table_escapes_values() -> None:
 
     assert "&lt;Latency&gt;" in html
     assert "1&amp;2" in html
+
+
+@pytest.mark.parametrize(
+    ("overrides", "error", "message"),
+    [
+        ({"plugins": ["unknown"]}, ValueError, "unsupported plugins"),
+        ({"plugins": ["hover", "hover"]}, ValueError, "duplicates"),
+        ({"streaming": {"previewSeconds": 0}}, ValueError, "greater than zero"),
+        ({"streaming": {"channels": 1.5}}, ValueError, "positive integer"),
+        ({"streaming": {"retainAudio": "yes"}}, TypeError, "boolean"),
+        ({"pluginOptions": []}, TypeError, "pluginOptions"),
+        ({"pluginOptions": {"spectrogram": []}}, TypeError, "spectrogram"),
+        ({"options": {"custom": {1, 2}}}, TypeError, "JSON serializable"),
+    ],
+)
+def test_invalid_player_config_is_rejected(overrides, error, message) -> None:
+    with pytest.raises(error, match=message):
+        load_player_config(overrides)
+
+
+def test_packaged_script_contains_vendored_runtime() -> None:
+    script = load_script()
+
+    assert "class PCMPlayer" in script
+    assert "class Player" in script
+    assert len(script) > 50_000

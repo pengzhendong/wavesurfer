@@ -55,5 +55,13 @@
       "maxZoom": 1000,
       "scale": 0.5
     }
+  },
+  "streaming": {
+    "channels": 1,
+    "flushTime": 100,
+    "previewSeconds": 30,
+    "retainAudio": true,
+    "sampleRate": 16000,
+    "waveformRefreshInterval": 1000
   }
 }

@@ -49,7 +49,7 @@ class Region:
 
 
 class AlignmentItem(NamedTuple):
-    """Compatibility model for alignments expressed using a duration."""
+    """An alignment expressed using a start time and duration."""
 
     symbol: str
     start: Seconds
@@ -93,6 +93,7 @@ class AlignmentItem(NamedTuple):
 
 AlignmentValue: TypeAlias = AlignmentItem | Region | Interval | Mapping[str, Any]
 AlignmentSource: TypeAlias = str | Path | Iterable[AlignmentValue]
+TierSelector: TypeAlias = int | str
 
 
 def _to_region(value: AlignmentValue) -> Region:
@@ -120,6 +121,7 @@ def _to_region(value: AlignmentValue) -> Region:
 def load_regions(
     source: AlignmentSource,
     *,
+    tier: TierSelector = 0,
     concatenate_overlaps: bool = False,
     merge_matching: bool = False,
 ) -> list[dict[str, Any]]:
@@ -134,7 +136,17 @@ def load_regions(
         raise ValueError("concatenate_overlaps and merge_matching are mutually exclusive")
 
     if isinstance(source, (str, Path)):
-        intervals = read_textgrid(str(source)).tiers[0].intervals
+        textgrid = read_textgrid(str(source))
+        if isinstance(tier, str):
+            selected_tier = textgrid.get_tier_by_name(tier)
+        else:
+            try:
+                selected_tier = textgrid.tiers[tier]
+            except IndexError as error:
+                raise ValueError(f"TextGrid tier index out of range: {tier}") from error
+        if not hasattr(selected_tier, "intervals"):
+            raise TypeError(f"TextGrid tier {tier!r} is not an interval tier")
+        intervals = selected_tier.intervals
         regions = [_to_region(interval) for interval in intervals]
     else:
         regions = [_to_region(value) for value in source]
@@ -172,4 +184,4 @@ def _combine_regions(
     return combined
 
 
-__all__ = ["AlignmentItem", "AlignmentSource", "Region", "load_regions"]
+__all__ = ["AlignmentItem", "AlignmentSource", "Region", "TierSelector", "load_regions"]
